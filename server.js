@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 5000;
 const SECRET_KEY = 'your_secret_key'; // Replace with a secure key in production
 
 // Middleware
-app.use(cors());
+app.use(cors({ origin: 'https://ne-india-guide.onrender.com' }));
 app.use(bodyParser.json());
 
 // Connect to MongoDB
