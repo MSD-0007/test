@@ -8,7 +8,13 @@ A private couple's app with instant real-time messaging, built as a progressive 
 - ⚡ **Real-Time Messaging** - Socket.IO for instant ping delivery (< 1 second)
 - 📱 **Android Mobile App** - Native app via Capacitor
 - 🔔 **Push Notifications** - OneSignal integration for offline notifications
-- 💭 **Quick Pings** - Pre-defined messages with emojis
+- � **Background Notifications** - Local notifications work even when app is closed
+- 📳 **Smart Vibrations** - Different vibration patterns for each ping type:
+  - 💭 **Thinking of You**: Light single vibration
+  - 💔 **Miss You**: Medium double vibration
+  - 💕 **Love You**: Heavy triple vibration (strong)
+  - 🆘 **Need You**: Heavy triple vibration (urgent)
+- �💭 **Quick Pings** - Pre-defined messages with emojis
 - 🎨 **Beautiful UI** - Ghibli-inspired design with animations
 - 🔥 **Firebase Backend** - Firestore database + Authentication
 
@@ -111,13 +117,26 @@ See `.env.local` for configuration:
 ### Real-Time Messaging
 1. **Both Online**: Socket.IO WebSocket connection (50-200ms delivery)
 2. **One Offline**: OneSignal push notification (1-3 seconds)
-3. **Auto-Reconnect**: Automatic reconnection on network issues
+3. **Background Mode**: Local notifications appear in notification drawer
+4. **Auto-Reconnect**: Automatic reconnection on network issues
+
+### Vibration Patterns
+Different vibration patterns help you know the urgency without looking at your phone:
+
+| Ping Type | Vibration | Pattern |
+|-----------|-----------|---------|
+| 💭 Thinking of You | Light | Single short vibration |
+| 💔 Miss You | Medium | Two medium vibrations |
+| 💕 Love You | Heavy | Three strong vibrations |
+| 🆘 Need You | Heavy | Three strong vibrations (urgent) |
 
 ### Architecture
 ```
 Phone A (ak)  →  Socket.IO Server  →  Phone B (ndg)
      ↓                   ↓                    ↓
   Browser         OneSignal API         Browser
+     ↓                                       ↓
+Local Notifications (Background)    Local Notifications
 ```
 
 ## 🔐 Security
