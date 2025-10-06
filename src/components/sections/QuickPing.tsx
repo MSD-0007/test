@@ -18,9 +18,9 @@ import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { useToast } from '@/hooks/use-toast';
 
 export type PingType = 
-  | 'missing-you'
-  | 'emergency'
-  | 'hear-voice'
+  | 'miss-you'
+  | 'love-you'
+  | 'need-you'
   | 'you-okay'
   | 'free-talk'
   | 'busy'
@@ -41,16 +41,6 @@ interface Ping {
 
 const pings: Ping[] = [
   {
-    id: 'missing-you',
-    label: 'Missing You',
-    message: '💕 Your love is thinking about you right now... Missing you so much!',
-    icon: Heart,
-    color: 'from-pink-400 to-rose-500',
-    gradient: 'bg-gradient-to-br from-pink-400/20 to-rose-500/20',
-    vibration: 'medium',
-    emoji: '💕'
-  },
-  {
     id: 'thinking-of-you',
     label: 'Thinking of You',
     message: '✨ You just crossed my mind and made me smile... Thinking of you!',
@@ -61,14 +51,34 @@ const pings: Ping[] = [
     emoji: '✨'
   },
   {
-    id: 'hear-voice',
-    label: 'Need to Hear Your Voice',
-    message: '📞 I really need to hear your voice right now. Can you call me?',
-    icon: Phone,
-    color: 'from-blue-400 to-indigo-500',
-    gradient: 'bg-gradient-to-br from-blue-400/20 to-indigo-500/20',
+    id: 'miss-you',
+    label: 'Missing You',
+    message: '� Your love is thinking about you right now... Missing you so much!',
+    icon: Heart,
+    color: 'from-pink-400 to-rose-500',
+    gradient: 'bg-gradient-to-br from-pink-400/20 to-rose-500/20',
+    vibration: 'medium',
+    emoji: '�'
+  },
+  {
+    id: 'love-you',
+    label: 'I Love You',
+    message: '💕 Just wanted to tell you how much I love you! You mean everything to me!',
+    icon: Heart,
+    color: 'from-red-400 to-pink-500',
+    gradient: 'bg-gradient-to-br from-red-400/20 to-pink-500/20',
     vibration: 'heavy',
-    emoji: '📞'
+    emoji: '💕'
+  },
+  {
+    id: 'need-you',
+    label: 'Need You NOW',
+    message: '🆘 I really need to hear your voice right now. Please call me!',
+    icon: Phone,
+    color: 'from-red-500 to-orange-600',
+    gradient: 'bg-gradient-to-br from-red-500/20 to-orange-600/20',
+    vibration: 'heavy',
+    emoji: '🆘'
   },
   {
     id: 'free-talk',
@@ -79,26 +89,6 @@ const pings: Ping[] = [
     gradient: 'bg-gradient-to-br from-green-400/20 to-emerald-500/20',
     vibration: 'light',
     emoji: '💬'
-  },
-  {
-    id: 'you-okay',
-    label: 'You Okay?',
-    message: '🤗 Just checking in... Are you okay, my love?',
-    icon: HelpCircle,
-    color: 'from-yellow-400 to-orange-500',
-    gradient: 'bg-gradient-to-br from-yellow-400/20 to-orange-500/20',
-    vibration: 'medium',
-    emoji: '🤗'
-  },
-  {
-    id: 'emergency',
-    label: 'Emergency',
-    message: '🚨 URGENT! Please call me as soon as you can. It\'s important!',
-    icon: AlertCircle,
-    color: 'from-red-500 to-orange-600',
-    gradient: 'bg-gradient-to-br from-red-500/20 to-orange-600/20',
-    vibration: 'heavy',
-    emoji: '🚨'
   },
   {
     id: 'busy',
@@ -157,16 +147,16 @@ export default function QuickPing({ userId }: QuickPingProps) {
       
       const recipientId = userId === 'ndg' ? 'ak' : 'ndg';
       
-      console.log(`⚡ Sending ping to ${recipientId} via Socket.IO`);
+      console.log(`⚡ Sending ping to ${recipientId} via Socket.IO with type: ${ping.id}`);
       
-      // Send via Socket.IO
-      const sent = sendSocketPing(recipientId, userId, ping.message);
+      // Send via Socket.IO with ping type
+      const sent = sendSocketPing(recipientId, userId, ping.message, ping.id);
       
       if (!sent) {
         throw new Error('Socket not connected');
       }
       
-      console.log('✅ Ping sent successfully via Socket.IO');
+      console.log('✅ Ping sent successfully via Socket.IO with type:', ping.id);
 
       // Success haptic
       try {
