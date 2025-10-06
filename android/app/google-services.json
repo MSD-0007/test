@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "743191976125",
+    "project_id": "special-love-fa3eb",
+    "storage_bucket": "special-love-fa3eb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:743191976125:android:ff47b2c5c170f4fb6dbfd4",
+        "android_client_info": {
+          "package_name": "com.secretlove.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDyXLXkwwgypwTEeqBsR9SHmCExhFcHzQk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

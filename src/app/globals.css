@@ -1,0 +1,151 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Blurple theme - Discord-inspired blue-purple */
+    --background: 235 86% 95%;
+    --foreground: 235 20% 20%;
+
+    --card: 235 60% 97%;
+    --card-foreground: 235 20% 20%;
+ 
+    --popover: 0 0% 100%;
+    --popover-foreground: 235 20% 20%;
+ 
+    --primary: 235 86% 65%; /* Blurple */
+    --primary-foreground: 0 0% 100%;
+ 
+    --secondary: 235 30% 92%;
+    --secondary-foreground: 235 50% 30%;
+ 
+    --muted: 235 30% 92%;
+    --muted-foreground: 235 10% 50%;
+ 
+    --accent: 270 80% 74%; /* Purple accent */
+    --accent-foreground: 270 40% 25%;
+ 
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 235 30% 90%;
+    --input: 235 30% 90%;
+    --ring: 235 86% 65%;
+ 
+    --radius: 0.75rem;
+  }
+}
+ 
+ @layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply text-foreground;
+    background: linear-gradient(135deg, #5865F2 0%, #4752C4 50%, #3C45A5 100%);
+    background-attachment: fixed;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    min-height: 100vh;
+  }
+
+  h1, h2, h3 {
+    @apply font-serif;
+  }
+}/* Custom Animation Classes */
+.floating {
+  @apply animate-float;
+}
+
+.glassmorphism {
+  @apply bg-white/30 backdrop-blur-md border border-white/40 shadow-lg;
+}
+
+.blurple-glassmorphism {
+  @apply bg-[#5865F2]/20 backdrop-blur-xl border border-[#5865F2]/30 shadow-2xl;
+}
+
+.sakura {
+  @apply absolute w-4 h-4 bg-love-light rotate-45 rounded-sm opacity-0;
+  animation: sakura-fall var(--fall-duration, 12s) linear forwards var(--fall-delay, 0s);
+}
+
+/* Enhanced animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { 
+    box-shadow: 0 0 20px rgba(88, 101, 242, 0.5);
+  }
+  50% { 
+    box-shadow: 0 0 40px rgba(88, 101, 242, 0.8);
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes bounce-gentle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+.animate-bounce-gentle {
+  animation: bounce-gentle 2s ease-in-out infinite;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out forwards;
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 5s ease infinite;
+}
+
+/* Blurple gradient background */
+.blurple-gradient {
+  background: linear-gradient(135deg, #5865F2 0%, #4752C4 50%, #3C45A5 100%);
+}
+
+.blurple-gradient-animated {
+  background: linear-gradient(135deg, #5865F2, #4752C4, #3C45A5, #5865F2);
+  background-size: 400% 400%;
+  animation: gradient-shift 8s ease infinite;
+} 

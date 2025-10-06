@@ -1,0 +1,18 @@
+services:
+  # Socket.IO Realtime Server
+  - type: web
+    name: special-love-server
+    env: node
+    region: oregon
+    plan: free
+    rootDir: realtime-server
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: ONESIGNAL_APP_ID
+        sync: false
+      - key: ONESIGNAL_API_KEY
+        sync: false
+      - key: PORT
+        value: 3001
+    healthCheckPath: /
