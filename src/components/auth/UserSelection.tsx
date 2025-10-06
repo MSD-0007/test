@@ -11,23 +11,11 @@ interface UserSelectionProps {
 export default function UserSelection({ onUserSelected }: UserSelectionProps) {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Check if user was previously selected
-    const savedUserId = localStorage.getItem('secretLoveUserId');
-    if (savedUserId) {
-      console.log('🔄 Auto-selecting previously chosen user:', savedUserId);
-      // Auto-select after a brief moment
-      setTimeout(() => {
-        handleUserSelect(savedUserId);
-      }, 300);
-    }
-  }, []);
-
   const handleUserSelect = (userId: string) => {
     setSelectedUser(userId);
     localStorage.setItem('secretLoveUserId', userId);
     
-    // Smooth transition to password screen
+    // Smooth transition after selection
     setTimeout(() => {
       onUserSelected(userId);
     }, 500);

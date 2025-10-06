@@ -16,12 +16,12 @@ type AppState = 'splash' | 'user-selection' | 'password' | 'main';
 
 const USER_CREDENTIALS = {
   ndg: {
-    email: 'ndg@special.love',
-    password: 'ndg123456'
+    email: 'us@love.com',
+    password: 'alwaysandforever'
   },
   ak: {
-    email: 'ak@special.love',
-    password: 'ak123456'
+    email: 'us@love.com',
+    password: 'alwaysandforever'
   }
 };
 
@@ -115,7 +115,7 @@ export default function AuthenticatedApp() {
             className="min-h-screen flex items-center justify-center"
           >
             <PasswordProtection 
-              correctPassword="alwaysandforever"
+              correctPassword="AnF"
               userId={selectedUserId}
               onAuthenticated={() => {
                 console.log('Password verified for userId:', selectedUserId);

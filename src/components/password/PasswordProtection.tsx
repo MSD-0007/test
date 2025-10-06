@@ -7,12 +7,12 @@ import { motion } from "framer-motion";
 import { Heart, Lock } from "lucide-react";
 
 interface PasswordProtectionProps {
-  correctPassword: string;
+  correctPassword?: string;
   userId: string;
   onAuthenticated?: () => void;
 }
 
-export default function PasswordProtection({ correctPassword, userId, onAuthenticated }: PasswordProtectionProps) {
+export default function PasswordProtection({ correctPassword = "AnF", userId, onAuthenticated }: PasswordProtectionProps) {
   const [password, setPassword] = useState("");
   const [showError, setShowError] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
