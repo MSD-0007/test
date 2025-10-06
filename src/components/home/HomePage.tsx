@@ -28,26 +28,16 @@ const loveMessages = [
   "I love you more than yesterday, but less than tomorrow.",
 ];
 
-export default function HomePage() {
+interface HomePageProps {
+  userId: string;
+}
+
+export default function HomePage({ userId }: HomePageProps) {
   const { toast } = useToast();
-  const [userId, setUserId] = useState<string>('ndg');
   
   useEffect(() => {
-    console.log('🏠 HomePage mounted!');
-    
-    // Get user ID from localStorage
-    const storedUserId = localStorage.getItem('secretLoveUserId');
-    console.log('📝 Stored userId from localStorage:', storedUserId);
-    
-    if (storedUserId) {
-      setUserId(storedUserId);
-      console.log('✅ Using userId:', storedUserId);
-    } else {
-      console.log('⚠️ No userId in localStorage, using default: ndg');
-      // Set default
-      localStorage.setItem('secretLoveUserId', 'ndg');
-    }
-  }, []);
+    console.log('🏠 HomePage mounted with userId:', userId);
+  }, [userId]);
   
   const showLoveMessage = () => {
     toast({

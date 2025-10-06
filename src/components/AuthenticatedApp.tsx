@@ -133,7 +133,7 @@ export default function AuthenticatedApp() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <HomePage />
+            <HomePage userId={selectedUserId} />
           </motion.div>
         )}
       </AnimatePresence>
