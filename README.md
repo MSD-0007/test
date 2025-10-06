@@ -123,12 +123,14 @@ See `.env.local` for configuration:
 ### Vibration Patterns
 Different vibration patterns help you know the urgency without looking at your phone:
 
-| Ping Type | Vibration | Pattern |
-|-----------|-----------|---------|
-| 💭 Thinking of You | Light | Single short vibration |
-| 💔 Miss You | Medium | Two medium vibrations |
-| 💕 Love You | Heavy | Three strong vibrations |
-| 🆘 Need You | Heavy | Three strong vibrations (urgent) |
+| Ping Type | Pattern | Duration | Feel |
+|-----------|---------|----------|------|
+| 💭 Thinking of You | Single | 100ms | Quick tap |
+| 💔 Miss You | Double | 200ms-100ms-200ms | Two gentle pulses |
+| 💕 Love You | Triple | 300ms-100ms-300ms-100ms-300ms | Three strong pulses |
+| 🆘 Need You | Triple URGENT | 500ms-100ms-500ms-100ms-500ms | Three LONG strong pulses |
+
+**Technical**: Uses Web Vibration API for custom patterns (Android native support)
 
 ### Architecture
 ```

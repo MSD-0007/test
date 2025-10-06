@@ -21,51 +21,52 @@ interface IncomingPing {
   timestamp: number;
 }
 
-// Vibration patterns for different ping types
+// Custom vibration patterns (in milliseconds)
+// Format: [vibrate, pause, vibrate, pause, ...]
 const VIBRATION_PATTERNS = {
-  'thinking-of-you': ImpactStyle.Light,
-  'miss-you': ImpactStyle.Medium,
-  'love-you': ImpactStyle.Heavy,
-  'need-you': ImpactStyle.Heavy,
-  default: ImpactStyle.Medium,
+  'thinking-of-you': [100], // Single short vibration
+  'miss-you': [200, 100, 200], // Double medium vibration
+  'love-you': [300, 100, 300, 100, 300], // Triple strong vibration
+  'need-you': [500, 100, 500, 100, 500], // Triple URGENT vibration
+  default: [200],
 };
 
-// Get vibration intensity based on ping type
-function getVibrationPattern(type: string): ImpactStyle {
-  return VIBRATION_PATTERNS[type as keyof typeof VIBRATION_PATTERNS] || VIBRATION_PATTERNS.default;
-}
-
-// Trigger haptic feedback with pattern
+// Native vibration using Web Vibration API (works on Android)
 async function triggerVibration(type: string) {
   if (!Capacitor.isNativePlatform()) {
     console.log('⚠️ Not on native platform, skipping vibration');
     return;
   }
 
-  const pattern = getVibrationPattern(type);
+  const pattern = VIBRATION_PATTERNS[type as keyof typeof VIBRATION_PATTERNS] || VIBRATION_PATTERNS.default;
   
   try {
-    console.log(`📳 Triggering vibration for type: ${type}, pattern: ${pattern}`);
+    console.log(`📳 Triggering custom vibration for type: ${type}, pattern:`, pattern);
     
-    // For serious pings (need-you, love-you), vibrate multiple times
-    if (type === 'need-you' || type === 'love-you') {
-      await Haptics.impact({ style: ImpactStyle.Heavy });
-      await new Promise(resolve => setTimeout(resolve, 200));
-      await Haptics.impact({ style: ImpactStyle.Heavy });
-      await new Promise(resolve => setTimeout(resolve, 200));
-      await Haptics.impact({ style: ImpactStyle.Heavy });
-      console.log('✅ Triple heavy vibration completed');
-    } else if (type === 'miss-you') {
-      await Haptics.impact({ style: ImpactStyle.Medium });
-      await new Promise(resolve => setTimeout(resolve, 300));
-      await Haptics.impact({ style: ImpactStyle.Medium });
-      console.log('✅ Double medium vibration completed');
+    // Check if Vibration API is available
+    if ('vibrate' in navigator) {
+      // Use native vibration API with custom patterns
+      navigator.vibrate(pattern);
+      console.log(`✅ Custom vibration pattern executed:`, pattern);
     } else {
-      await Haptics.impact({ style: pattern });
-      console.log('✅ Single vibration completed');
+      // Fallback to Capacitor Haptics
+      console.log('⚠️ Vibration API not available, using Haptics fallback');
+      if (type === 'need-you' || type === 'love-you') {
+        await Haptics.impact({ style: ImpactStyle.Heavy });
+        await new Promise(resolve => setTimeout(resolve, 200));
+        await Haptics.impact({ style: ImpactStyle.Heavy });
+        await new Promise(resolve => setTimeout(resolve, 200));
+        await Haptics.impact({ style: ImpactStyle.Heavy });
+      } else if (type === 'miss-you') {
+        await Haptics.impact({ style: ImpactStyle.Medium });
+        await new Promise(resolve => setTimeout(resolve, 300));
+        await Haptics.impact({ style: ImpactStyle.Medium });
+      } else {
+        await Haptics.impact({ style: ImpactStyle.Light });
+      }
     }
   } catch (error) {
-    console.error('❌ Haptic error:', error);
+    console.error('❌ Vibration error:', error);
   }
 }
 
@@ -74,7 +75,7 @@ async function showLocalNotification(ping: IncomingPing) {
   if (!Capacitor.isNativePlatform()) return;
 
   try {
-    // Request permissions
+    // Request permissions first
     const permission = await LocalNotifications.requestPermissions();
     if (permission.display !== 'granted') {
       console.log('⚠️ Notification permission not granted');
@@ -84,22 +85,24 @@ async function showLocalNotification(ping: IncomingPing) {
     // Generate unique numeric ID from timestamp (last 9 digits to keep it as valid int)
     const notificationId = parseInt(String(ping.timestamp).slice(-9));
 
-    // Schedule notification
+    // Schedule notification to show IMMEDIATELY (no delay)
     await LocalNotifications.schedule({
       notifications: [
         {
           title: `💕 ${ping.from === 'ndg' ? 'Him' : 'Her'} sent you a ping!`,
           body: ping.message,
           id: notificationId,
-          schedule: { at: new Date(Date.now() + 100) }, // Show immediately
+          schedule: { at: new Date(Date.now() + 10) }, // 10ms delay (almost instant)
           sound: undefined, // Use default sound
           attachments: undefined,
           actionTypeId: '',
           extra: ping,
+          smallIcon: 'ic_launcher',
+          largeIcon: undefined,
         },
       ],
     });
-    console.log('✅ Local notification scheduled with ID:', notificationId);
+    console.log('✅ Local notification scheduled instantly with ID:', notificationId);
   } catch (error) {
     console.error('❌ Error showing local notification:', error);
   }
