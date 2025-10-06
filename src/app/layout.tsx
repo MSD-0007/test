@@ -1,7 +1,6 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { Playfair_Display, Dancing_Script } from "next/font/google";
-import { Toaster } from "@/components/shared/ui/toaster";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -29,7 +28,6 @@ export default function RootLayout({
     <html lang="en" className={`${playfair.variable} ${dancingScript.variable}`}>
       <body className="min-h-screen bg-gradient-to-b from-ghibli-cloud to-ghibli-sky">
         {children}
-        <Toaster />
       </body>
     </html>
   );

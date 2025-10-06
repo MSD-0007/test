@@ -26,6 +26,7 @@ yarn-error.log*
 # local env files
 .env*.local
 .env
+realtime-server/.env
 
 # vercel
 .vercel
@@ -34,15 +35,24 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# firebase admin sdk
-special-love-fa3eb-firebase-adminsdk-*.json
+# firebase admin sdk and credentials
+*firebase-adminsdk*.json
+google-services.json
 
 # Android
 android/build/
 android/.gradle/
 android/app/build/
 android/local.properties
+android/app/google-services.json
 
 # Capacitor
 .capacitor/
-capacitor.config.json 
+capacitor.config.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~ 
