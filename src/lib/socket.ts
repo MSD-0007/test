@@ -36,8 +36,12 @@ export const initializeSocket = (userId: string, oneSignalPlayerId?: string) => 
   socket = io(serverUrl, {
     transports: ['websocket', 'polling'],
     reconnection: true,
-    reconnectionAttempts: 5,
+    reconnectionAttempts: Infinity, // Keep trying to reconnect
     reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000,
+    timeout: 20000,
+    forceNew: false,
+    autoConnect: true,
   });
 
   socket.on('connect', () => {
@@ -47,8 +51,20 @@ export const initializeSocket = (userId: string, oneSignalPlayerId?: string) => 
     socket?.emit('login', { userId, playerId: oneSignalPlayerId });
   });
 
-  socket.on('disconnect', () => {
-    console.log('❌ Disconnected from Socket.IO server');
+  socket.on('disconnect', (reason) => {
+    console.log('❌ Disconnected from Socket.IO server. Reason:', reason);
+    
+    // Auto-reconnect if not intentional disconnect
+    if (reason === 'io server disconnect') {
+      // Server disconnected, manually reconnect
+      socket?.connect();
+    }
+  });
+
+  socket.on('reconnect', (attemptNumber) => {
+    console.log('🔄 Reconnected to server after', attemptNumber, 'attempts');
+    // Re-login after reconnection
+    socket?.emit('login', { userId, playerId: oneSignalPlayerId });
   });
 
   socket.on('connect_error', (error: Error) => {

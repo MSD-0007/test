@@ -37,27 +37,35 @@ function getVibrationPattern(type: string): ImpactStyle {
 
 // Trigger haptic feedback with pattern
 async function triggerVibration(type: string) {
-  if (!Capacitor.isNativePlatform()) return;
+  if (!Capacitor.isNativePlatform()) {
+    console.log('⚠️ Not on native platform, skipping vibration');
+    return;
+  }
 
   const pattern = getVibrationPattern(type);
   
   try {
+    console.log(`📳 Triggering vibration for type: ${type}, pattern: ${pattern}`);
+    
     // For serious pings (need-you, love-you), vibrate multiple times
     if (type === 'need-you' || type === 'love-you') {
       await Haptics.impact({ style: ImpactStyle.Heavy });
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 200));
       await Haptics.impact({ style: ImpactStyle.Heavy });
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 200));
       await Haptics.impact({ style: ImpactStyle.Heavy });
+      console.log('✅ Triple heavy vibration completed');
     } else if (type === 'miss-you') {
       await Haptics.impact({ style: ImpactStyle.Medium });
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await new Promise(resolve => setTimeout(resolve, 300));
       await Haptics.impact({ style: ImpactStyle.Medium });
+      console.log('✅ Double medium vibration completed');
     } else {
       await Haptics.impact({ style: pattern });
+      console.log('✅ Single vibration completed');
     }
   } catch (error) {
-    console.log('⚠️ Haptic not available:', error);
+    console.error('❌ Haptic error:', error);
   }
 }
 
@@ -73,21 +81,25 @@ async function showLocalNotification(ping: IncomingPing) {
       return;
     }
 
+    // Generate unique numeric ID from timestamp (last 9 digits to keep it as valid int)
+    const notificationId = parseInt(String(ping.timestamp).slice(-9));
+
     // Schedule notification
     await LocalNotifications.schedule({
       notifications: [
         {
           title: `💕 ${ping.from === 'ndg' ? 'Him' : 'Her'} sent you a ping!`,
           body: ping.message,
-          id: ping.timestamp,
+          id: notificationId,
           schedule: { at: new Date(Date.now() + 100) }, // Show immediately
-          sound: 'beep.wav',
+          sound: undefined, // Use default sound
           attachments: undefined,
           actionTypeId: '',
           extra: ping,
         },
       ],
     });
+    console.log('✅ Local notification scheduled with ID:', notificationId);
   } catch (error) {
     console.error('❌ Error showing local notification:', error);
   }

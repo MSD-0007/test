@@ -9,8 +9,17 @@ const config: CapacitorConfig = {
     cleartext: true,         // Allow cleartext (HTTP) traffic
     allowNavigation: [
       'http://10.195.33.185:3001',
-      'ws://10.195.33.185:3001'
+      'ws://10.195.33.185:3001',
+      'localhost:3001',
+      '127.0.0.1:3001'
     ]
+  },
+  android: {
+    allowMixedContent: true,
+    captureInput: true,
+    webContentsDebuggingEnabled: true,
+    // Keep WebView alive in background
+    backgroundColor: '#ffffff',
   },
   plugins: {
     SplashScreen: {
