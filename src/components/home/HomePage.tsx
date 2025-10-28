@@ -10,6 +10,8 @@ import FloatingParticles from "@/components/shared/FloatingParticles";
 import QuickPing from "@/components/sections/QuickPing";
 import PingListener from "@/components/sections/PingListener";
 import DynamicMoments from "@/components/sections/DynamicMoments";
+import { listenForSimplePings, startPingPolling } from "@/lib/simple-messaging";
+import { Capacitor } from '@capacitor/core';
 import dynamic from "next/dynamic";
 
 const LettersSection = dynamic(() => import("@/components/sections/LettersSection"), { ssr: false });
@@ -28,16 +30,150 @@ const loveMessages = [
   "I love you more than yesterday, but less than tomorrow.",
 ];
 
-interface HomePageProps {
-  userId: string;
-}
-
-export default function HomePage({ userId }: HomePageProps) {
+export default function HomePage() {
   const { toast } = useToast();
+  const [userId, setUserId] = useState<string>('ndg');
+  
+  // NUCLEAR OPTION: Simple notification handler + Firestore listener
+  useEffect(() => {
+    console.log('🚀 NUCLEAR: Setting up ping listeners');
+    
+    const handleNuclearPing = (event: any) => {
+      console.log('🚀 NUCLEAR: Socket ping received:', event.detail);
+      
+      // Debug notification availability
+      console.log('🔍 Socket ping - checking notification availability:', {
+        showSimpleNotification: !!window.showSimpleNotification,
+        Notification: typeof Notification !== 'undefined',
+        permission: typeof Notification !== 'undefined' ? Notification.permission : 'unknown'
+      });
+      
+      // Use the global simple notification function
+      if (window.showSimpleNotification) {
+        console.log('🔔 Socket ping - calling showSimpleNotification...');
+        const title = `💕 ${event.detail.from || 'Someone'} sent you a ping!`;
+        const body = event.detail.message || 'You received a new message!';
+        window.showSimpleNotification(title, body);
+      } else {
+        console.error('❌ Socket ping - window.showSimpleNotification not available!');
+        
+        // Fallback to browser notification
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+          console.log('🔔 Socket ping - using fallback browser notification');
+          new Notification(`💕 ${event.detail.from || 'Someone'} sent you a ping!`, {
+            body: event.detail.message || 'You received a new message!',
+            icon: '/images/heart-icon.png'
+          });
+        }
+      }
+    };
+
+    const handleFirestorePing = async (ping: any) => {
+      console.log('🔥 FIRESTORE: Ping received:', ping);
+      
+      // DIRECT ANDROID NOTIFICATION - bypass all other systems
+      if (Capacitor.isNativePlatform()) {
+        console.log('📱 DIRECT: Android detected, using direct LocalNotifications');
+        try {
+          const { LocalNotifications } = await import('@capacitor/local-notifications');
+          
+          // Request permission if needed
+          const permissions = await LocalNotifications.requestPermissions();
+          console.log('📱 DIRECT: Permissions:', permissions);
+          
+          if (permissions.display === 'granted') {
+            await LocalNotifications.schedule({
+              notifications: [{
+                title: `💕 ${ping.from || 'Someone'} sent you a ping!`,
+                body: ping.message || 'You received a new message!',
+                id: Date.now(),
+                sound: 'default',
+                attachments: undefined,
+                actionTypeId: '',
+                extra: {}
+              }]
+            });
+            console.log('📱 DIRECT: Android notification sent!');
+          } else {
+            console.error('📱 DIRECT: Permission denied');
+          }
+        } catch (error) {
+          console.error('📱 DIRECT: Error:', error);
+        }
+      } else {
+        // Web notification
+        console.log('🌐 DIRECT: Web detected, using browser notification');
+        if (typeof Notification !== 'undefined') {
+          if (Notification.permission === 'granted') {
+            new Notification(`💕 ${ping.from || 'Someone'} sent you a ping!`, {
+              body: ping.message || 'You received a new message!',
+              icon: '/images/heart-icon.png'
+            });
+            console.log('🌐 DIRECT: Web notification sent!');
+          } else if (Notification.permission === 'default') {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+              new Notification(`💕 ${ping.from || 'Someone'} sent you a ping!`, {
+                body: ping.message || 'You received a new message!',
+                icon: '/images/heart-icon.png'
+              });
+              console.log('🌐 DIRECT: Web notification sent after permission!');
+            }
+          }
+        }
+      }
+      
+      // Also trigger the custom event for other listeners
+      window.dispatchEvent(new CustomEvent('new-ping', { detail: ping }));
+    };
+
+    // Add socket event listener
+    window.addEventListener('new-ping', handleNuclearPing);
+    
+    // Add Firestore listener
+    let unsubscribeFirestore: (() => void) | null = null;
+    let stopPolling: (() => void) | null = null;
+    
+    if (userId) {
+      // Always use real-time listener
+      unsubscribeFirestore = listenForSimplePings(userId, handleFirestorePing);
+      
+      // On Android, also use polling as backup (since real-time can be unreliable)
+      if (Capacitor.isNativePlatform()) {
+        console.log('📱 Android detected, starting backup polling');
+        stopPolling = startPingPolling(userId, handleFirestorePing, 5000); // Poll every 5 seconds
+      }
+    }
+    
+    console.log('🚀 NUCLEAR: All listeners added');
+    
+    return () => {
+      window.removeEventListener('new-ping', handleNuclearPing);
+      if (unsubscribeFirestore) {
+        unsubscribeFirestore();
+      }
+      if (stopPolling) {
+        stopPolling();
+      }
+    };
+  }, [userId]);
   
   useEffect(() => {
-    console.log('🏠 HomePage mounted with userId:', userId);
-  }, [userId]);
+    console.log('🏠 HomePage mounted!');
+    
+    // Get user ID from localStorage
+    const storedUserId = localStorage.getItem('secretLoveUserId');
+    console.log('📝 Stored userId from localStorage:', storedUserId);
+    
+    if (storedUserId) {
+      setUserId(storedUserId);
+      console.log('✅ Using userId:', storedUserId);
+    } else {
+      console.log('⚠️ No userId in localStorage, using default: ndg');
+      // Set default
+      localStorage.setItem('secretLoveUserId', 'ndg');
+    }
+  }, []);
   
   const showLoveMessage = () => {
     toast({
@@ -106,6 +242,23 @@ export default function HomePage({ userId }: HomePageProps) {
               className="text-lg px-8 py-6 bg-white/20 hover:bg-white/30 text-white backdrop-blur-xl border border-white/30 shadow-2xl"
             >
               Send a Love Message 💖
+            </Button>
+            <Button 
+              size="lg" 
+              onClick={() => {
+                console.log('🧪 Testing all notification systems...');
+                // Test simple notifications
+                if (window.showSimpleNotification) {
+                  window.showSimpleNotification('🧪 Test Notification', 'All systems working!');
+                }
+                // Test final notification function
+                if ((window as any).testFinalNotification) {
+                  (window as any).testFinalNotification();
+                }
+              }}
+              className="text-lg px-8 py-6 bg-green-500/20 hover:bg-green-500/30 text-white backdrop-blur-xl border border-green-400/30 shadow-2xl"
+            >
+              Test Notifications 🧪
             </Button>
           </motion.div>
         </motion.div>

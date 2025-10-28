@@ -4,18 +4,21 @@ import React, { useState, useEffect } from "react";
 import { Input } from "@/components/shared/ui/input";
 import { Button } from "@/components/shared/ui/button";
 import { motion } from "framer-motion";
-import { Heart, Lock } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface PasswordProtectionProps {
-  correctPassword?: string;
-  userId: string;
-  onAuthenticated?: () => void;
+  correctPassword: string;
+  onAuthenticated?: (userId: string) => void;
 }
 
-export default function PasswordProtection({ correctPassword = "AnF", userId, onAuthenticated }: PasswordProtectionProps) {
+export default function PasswordProtection({ correctPassword, onAuthenticated }: PasswordProtectionProps) {
   const [password, setPassword] = useState("");
+  const [userName, setUserName] = useState("");
+  const [step, setStep] = useState<'password' | 'name'>('password');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showError, setShowError] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     setIsMounted(true);
@@ -25,99 +28,174 @@ export default function PasswordProtection({ correctPassword = "AnF", userId, on
     e.preventDefault();
     
     if (password === correctPassword) {
-      localStorage.setItem("secretLoveUserId", userId);
-      console.log("Password verified, userId stored:", userId);
-      
-      if (onAuthenticated) {
-        onAuthenticated();
-      }
+      setStep('name');
     } else {
-      console.log("Incorrect password");
       setShowError(true);
       setTimeout(() => setShowError(false), 2000);
       setPassword("");
     }
   };
 
+  const handleNameSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (userName.trim()) {
+      setIsAuthenticated(true);
+      
+      // Determine user ID based on name
+      const userNameLower = userName.toLowerCase();
+      const userId = userNameLower.includes('ndg') || userNameLower.includes('him') || userNameLower.includes('boy') 
+        ? 'ndg' 
+        : 'ak';
+      
+      // Store in localStorage
+      localStorage.setItem('secretLoveUserId', userId);
+      localStorage.setItem('secretLoveUserName', userName);
+      
+      if (onAuthenticated) {
+        onAuthenticated(userId);
+      }
+      
+      // Show the protected content
+      const protectedContent = document.getElementById("protected-content");
+      if (protectedContent) {
+        protectedContent.classList.remove("hidden");
+      }
+      
+      // Hide the password screen with animation
+      setTimeout(() => {
+        const passwordScreen = document.getElementById("password-screen");
+        if (passwordScreen) {
+          passwordScreen.classList.add("opacity-0");
+          setTimeout(() => {
+            passwordScreen.classList.add("hidden");
+          }, 500);
+        }
+      }, 300);
+
+      toast({
+        title: `Welcome back, ${userName}! ❤️`,
+        description: "So happy to see you again!",
+      });
+    }
+  };
+
   if (!isMounted) return null;
 
   return (
-    <div className="w-full max-w-md px-4">
+    <div 
+      id="password-screen"
+      className="fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-500 bg-gradient-to-br from-[#5865F2] via-[#4752C4] to-[#3C45A5]"
+    >
       <motion.div 
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
-        className="glassmorphism p-8 rounded-2xl backdrop-blur-xl bg-white/10"
+        className="w-full max-w-md glassmorphism p-8 rounded-xl"
       >
-        <div className="text-center mb-8">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-            className="inline-block mb-4"
-          >
-            <div className="relative">
-              <Heart className="w-16 h-16 text-pink-300 fill-pink-300" />
-              <Lock className="w-6 h-6 text-white absolute bottom-0 right-0 bg-blue-500 rounded-full p-1" />
-            </div>
-          </motion.div>
-          
-          <h1 className="text-3xl md:text-4xl font-serif text-white mb-2">
-            Enter Password
-          </h1>
-          
-          <p className="text-white/70 text-sm">
-            {userId === "ndg" ? " Him" : " Her"}
-          </p>
-        </div>
-        
-        <motion.form 
-          onSubmit={handlePasswordSubmit}
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-          className="space-y-6"
+        <motion.h1 
+          className="text-3xl md:text-4xl font-serif text-center mb-6 text-foreground"
+          initial={{ y: -20 }}
+          animate={{ y: 0 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
         >
-          <div className="space-y-2">
-            <Input
-              type="password"
-              placeholder="Type the secret password..."
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={"w-full px-4 py-6 text-lg rounded-xl bg-white/20 backdrop-blur-sm border-2 text-white placeholder-white/50 focus:outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-400/20 transition-all duration-200 " + (showError ? "border-red-400 animate-shake" : "border-white/30")}
-              autoFocus
-            />
-            
-            {showError && (
-              <motion.p
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-red-300 text-sm text-center"
-              >
-                 Incorrect password, try again
-              </motion.p>
-            )}
-          </div>
-          
-          <Button
-            type="submit"
-            disabled={!password.trim()}
-            className="w-full py-6 text-lg font-semibold rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 disabled:opacity-50 disabled:cursor-not-allowed text-white shadow-lg transition-all duration-200 hover:scale-105 active:scale-95"
-          >
-            Continue 
-          </Button>
-        </motion.form>
+          Welcome, Love
+        </motion.h1>
         
-        <motion.p
+        {step === 'password' ? (
+          <motion.form 
+            onSubmit={handlePasswordSubmit} 
+            className="space-y-4"
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.5 }}
+          >
+            <div className="space-y-2">
+              <Input
+                type="password"
+                placeholder="Enter the secret password..."
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={`bg-white/70 focus:bg-white/90 ${
+                  showError ? "border-red-500 animate-shake" : ""
+                }`}
+              />
+              {showError && (
+                <motion.p 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-red-500 text-sm mt-1"
+                >
+                  That's not right, try again ❤️
+                </motion.p>
+              )}
+            </div>
+            <Button type="submit" className="w-full bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white">
+              Continue
+            </Button>
+          </motion.form>
+        ) : (
+          <motion.form 
+            onSubmit={handleNameSubmit} 
+            className="space-y-4"
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="space-y-2">
+              <Input
+                type="text"
+                placeholder="Who are you? (him/her)"
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                className="bg-white/70 focus:bg-white/90"
+                autoFocus
+              />
+            </div>
+            <Button type="submit" className="w-full bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white">
+              Enter Our Space ❤️
+            </Button>
+          </motion.form>
+        )}
+        
+        <motion.p 
+          className="text-center mt-6 text-sm text-foreground/70"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="text-center text-white/50 text-xs mt-6"
+          transition={{ delay: 0.6, duration: 0.5 }}
         >
-          The password is known only to you 
+          A special place, just for you
         </motion.p>
       </motion.div>
+
+      {/* Decorative floating elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(8)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="sakura"
+            initial={{ 
+              x: Math.random() * window.innerWidth,
+              y: -20,
+              rotate: Math.random() * 90
+            }}
+            animate={{
+              y: window.innerHeight + 20,
+              rotate: Math.random() * 360,
+              x: Math.random() * window.innerWidth
+            }}
+            transition={{
+              duration: 10 + Math.random() * 10,
+              repeat: Infinity,
+              repeatType: "loop",
+              delay: Math.random() * 5
+            }}
+            style={{
+              left: `${Math.random() * 100}%`,
+            }}
+          />
+        ))}
+      </div>
     </div>
   );
-}
-
+} 

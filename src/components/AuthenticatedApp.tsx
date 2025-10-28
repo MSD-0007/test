@@ -2,76 +2,90 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { useAuth } from '@/components/auth/AuthProvider';
 import SplashScreen from '@/components/shared/SplashScreen';
-import UserSelection from '@/components/auth/UserSelection';
+import LoginForm from '@/components/auth/LoginForm';
 import PasswordProtection from '@/components/password/PasswordProtection';
 import HomePage from '@/components/home/HomePage';
 import FloatingParticles from '@/components/shared/FloatingParticles';
+import NotificationManager from '@/components/NotificationManager';
 import { initializeSocket } from '@/lib/socket';
-import { initializeOneSignal } from '@/lib/onesignal';
+import { initializeFCM } from '@/lib/fcm';
+import { initSimpleNotifications } from '@/lib/simple-notifications';
 
-type AppState = 'splash' | 'user-selection' | 'password' | 'main';
-
-const USER_CREDENTIALS = {
-  ndg: {
-    email: 'us@love.com',
-    password: 'alwaysandforever'
-  },
-  ak: {
-    email: 'us@love.com',
-    password: 'alwaysandforever'
-  }
-};
+type AppState = 'splash' | 'login' | 'user-selection' | 'main';
 
 export default function AuthenticatedApp() {
+  const { user, loading, isAuthenticated } = useAuth();
   const [appState, setAppState] = useState<AppState>('splash');
-  const [selectedUserId, setSelectedUserId] = useState<string>('');
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [socketInitialized, setSocketInitialized] = useState(false);
 
-  console.log('AuthenticatedApp state:', { appState, selectedUserId });
+  console.log('🚀 AuthenticatedApp state:', { appState, isAuthenticated, userEmail: user?.email });
 
-  const handleUserSelection = async (userId: string) => {
-    console.log('User selected:', userId);
-    setSelectedUserId(userId);
-    setIsAuthenticating(true);
-
-    try {
-      const credentials = USER_CREDENTIALS[userId as keyof typeof USER_CREDENTIALS];
-      console.log('Auto-logging in with email:', credentials.email);
-      
-      await signInWithEmailAndPassword(auth, credentials.email, credentials.password);
-      
-      console.log('Auto-login successful');
-      setAppState('password');
-    } catch (error) {
-      console.error('Auto-login failed:', error);
-      setSelectedUserId('');
-    } finally {
-      setIsAuthenticating(false);
-    }
-  };
-
+    // Initialize Socket.IO when authenticated and on main page
   useEffect(() => {
-    const initRealtime = async () => {
-      if (appState === 'main' && selectedUserId && !socketInitialized) {
-        console.log('Initializing Socket.IO for user:', selectedUserId);
+    console.log('🔍 Socket init check:', { isAuthenticated, appState, socketInitialized });
+    
+    const initializeSocketConnection = async () => {
+      if (isAuthenticated && appState === 'main' && !socketInitialized) {
+        console.log('🔌 Initializing socket connection...');
         
-        const playerId = await initializeOneSignal(selectedUserId);
-        initializeSocket(selectedUserId, playerId || undefined);
+        const userId = localStorage.getItem('secretLoveUserId');
+        console.log('👤 Retrieved userId from localStorage:', userId);
         
-        setSocketInitialized(true);
+        if (!userId) {
+          console.error('❌ No userId found for socket initialization');
+          return;
+        }
+
+        try {
+          // Initialize FCM for push notifications
+          console.log('📱 Initializing FCM...');
+          await initializeFCM(userId);
+          console.log('✅ FCM initialization complete');
+          
+          // Initialize NUCLEAR simple notifications
+          console.log('🚀 NUCLEAR: Initializing simple notifications');
+          await initSimpleNotifications();
+          
+          // Initialize socket with userId
+          console.log('🚀 Calling initializeSocket...');
+          initializeSocket(userId, undefined);
+          setSocketInitialized(true);
+          console.log('✅ Socket initialization complete');
+        } catch (error) {
+          console.error('❌ Error initializing socket:', error);
+        }
       }
     };
 
-    initRealtime();
-  }, [appState, selectedUserId, socketInitialized]);
+    initializeSocketConnection();
+  }, [isAuthenticated, appState, socketInitialized]);
+
+  // Show loading while auth is initializing
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#5865F2] via-[#4752C4] to-[#3C45A5] flex items-center justify-center">
+        <FloatingParticles />
+        <div className="text-white text-lg">Loading...</div>
+      </div>
+    );
+  }
+
+  // If authenticated and past splash, go straight to user selection or main
+  if (isAuthenticated && appState === 'splash') {
+    setAppState('user-selection');
+  }
+
+  // If not authenticated and past splash, show login
+  if (!isAuthenticated && appState === 'splash') {
+    setAppState('login');
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#5865F2] via-[#4752C4] to-[#3C45A5] relative overflow-hidden">
       <FloatingParticles />
+      <NotificationManager />
       
       <AnimatePresence mode="wait">
         {appState === 'splash' && (
@@ -83,12 +97,33 @@ export default function AuthenticatedApp() {
             transition={{ duration: 0.5 }}
           >
             <SplashScreen 
-              onComplete={() => setAppState('user-selection')} 
+              onComplete={() => {
+                if (isAuthenticated) {
+                  setAppState('user-selection');
+                } else {
+                  setAppState('login');
+                }
+              }} 
             />
           </motion.div>
         )}
 
-        {appState === 'user-selection' && (
+        {appState === 'login' && !isAuthenticated && (
+          <motion.div
+            key="login"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.5 }}
+            className="min-h-screen flex items-center justify-center p-4"
+          >
+            <LoginForm 
+              onLoginSuccess={() => setAppState('user-selection')} 
+            />
+          </motion.div>
+        )}
+
+        {appState === 'user-selection' && isAuthenticated && (
           <motion.div
             key="user-selection"
             initial={{ opacity: 0, y: 20 }}
@@ -97,35 +132,17 @@ export default function AuthenticatedApp() {
             transition={{ duration: 0.5 }}
             className="min-h-screen flex items-center justify-center"
           >
-            {isAuthenticating ? (
-              <div className="text-white text-lg">Authenticating...</div>
-            ) : (
-              <UserSelection onUserSelected={handleUserSelection} />
-            )}
-          </motion.div>
-        )}
-
-        {appState === 'password' && selectedUserId && (
-          <motion.div
-            key="password"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.5 }}
-            className="min-h-screen flex items-center justify-center"
-          >
             <PasswordProtection 
               correctPassword="AnF"
-              userId={selectedUserId}
-              onAuthenticated={() => {
-                console.log('Password verified for userId:', selectedUserId);
+              onAuthenticated={(userId) => {
+                console.log('🔐 User selection completed, userId:', userId);
                 setAppState('main');
               }} 
             />
           </motion.div>
         )}
 
-        {appState === 'main' && selectedUserId && (
+        {appState === 'main' && isAuthenticated && (
           <motion.div
             key="main"
             initial={{ opacity: 0 }}
@@ -133,7 +150,7 @@ export default function AuthenticatedApp() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <HomePage userId={selectedUserId} />
+            <HomePage />
           </motion.div>
         )}
       </AnimatePresence>

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { sendPing as sendSocketPing } from '@/lib/socket';
+import { sendSimplePing } from '@/lib/simple-messaging';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { useToast } from '@/hooks/use-toast';
 
@@ -147,16 +148,21 @@ export default function QuickPing({ userId }: QuickPingProps) {
       
       const recipientId = userId === 'ndg' ? 'ak' : 'ndg';
       
-      console.log(`⚡ Sending ping to ${recipientId} via Socket.IO with type: ${ping.id}`);
+      console.log(`⚡ Sending ping to ${recipientId} via multiple methods with type: ${ping.id}`);
       
-      // Send via Socket.IO with ping type
-      const sent = sendSocketPing(recipientId, userId, ping.message, ping.id);
+      // Try Socket.IO first, fallback to Firestore
+      const socketSent = sendSocketPing(recipientId, userId, ping.message, ping.id);
       
-      if (!sent) {
-        throw new Error('Socket not connected');
+      if (!socketSent) {
+        console.log('🔄 Socket failed, using Firestore fallback...');
+        const firestoreSent = await sendSimplePing(recipientId, userId, ping.message, ping.id);
+        if (!firestoreSent) {
+          throw new Error('Both Socket and Firestore failed');
+        }
+        console.log('✅ Ping sent successfully via Firestore fallback');
+      } else {
+        console.log('✅ Ping sent successfully via Socket.IO');
       }
-      
-      console.log('✅ Ping sent successfully via Socket.IO with type:', ping.id);
 
       // Success haptic
       try {

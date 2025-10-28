@@ -115,14 +115,20 @@ export const onNotificationClick = (callback: (data: any) => void) => {
   if (!OneSignal) return;
 
   try {
-    // Check if method exists before calling
-    if (typeof OneSignal.setNotificationOpenedHandler === 'function') {
+    // Use newer API first
+    if (typeof OneSignal.setNotificationClickHandler === 'function') {
+      OneSignal.setNotificationClickHandler((openedEvent: any) => {
+        console.log('👆 Notification clicked (new API):', openedEvent);
+        callback(openedEvent.notification);
+      });
+    } else if (typeof OneSignal.setNotificationOpenedHandler === 'function') {
+      // Fallback to older API
       OneSignal.setNotificationOpenedHandler((openedEvent: any) => {
-        console.log('👆 Notification clicked:', openedEvent);
+        console.log('👆 Notification clicked (legacy API):', openedEvent);
         callback(openedEvent.notification);
       });
     } else {
-      console.warn('⚠️ setNotificationOpenedHandler not available in this OneSignal version');
+      console.warn('⚠️ No notification click handler available in this OneSignal version');
     }
   } catch (error) {
     console.warn('⚠️ Could not set notification click handler:', error);

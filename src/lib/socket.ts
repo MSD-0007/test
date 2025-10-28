@@ -11,23 +11,42 @@ const getSocketServerUrl = () => {
   const configuredUrl = process.env.NEXT_PUBLIC_SOCKET_URL;
   
   // Check if running on native mobile platform (Capacitor)
-  if (Capacitor.isNativePlatform()) {
+  const isNativePlatform = Capacitor.isNativePlatform();
+  
+  // Check if we're in a desktop browser (not mobile app)
+  const isDesktopBrowser = typeof window !== 'undefined' && 
+    !isNativePlatform &&
+    (window.location.hostname === 'localhost' || 
+     window.location.hostname === '127.0.0.1');
+  
+  console.log('🔍 Platform detection:', {
+    isDesktopBrowser,
+    isNativePlatform,
+    hostname: typeof window !== 'undefined' ? window.location.hostname : 'undefined',
+    platform: Capacitor.getPlatform(),
+    configuredUrl
+  });
+  
+  if (isNativePlatform) {
+    // Running on native mobile platform - use configured IP
     console.log('📱 Running on native platform, using configured URL:', configuredUrl);
     return configuredUrl || 'http://localhost:3001';
+  } else {
+    // Running in desktop web browser - use localhost
+    console.log('🌐 Running in desktop browser, using localhost:3001');
+    return 'http://localhost:3001';
   }
-  
-  // Running in web browser - use localhost
-  console.log('🌐 Running in browser, using localhost');
-  return 'http://localhost:3001';
 };
 
 /**
  * Initialize Socket.IO connection
  */
 export const initializeSocket = (userId: string, oneSignalPlayerId?: string) => {
-  if (socket?.connected) {
-    console.log('Socket already connected');
-    return socket;
+  // If socket exists and is connected, disconnect it first to reinitialize
+  if (socket) {
+    console.log('🔄 Existing socket found, disconnecting...');
+    socket.disconnect();
+    socket = null;
   }
 
   const serverUrl = getSocketServerUrl();
@@ -40,7 +59,7 @@ export const initializeSocket = (userId: string, oneSignalPlayerId?: string) => 
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
     timeout: 20000,
-    forceNew: false,
+    forceNew: true, // Force new connection each time
     autoConnect: true,
   });
 

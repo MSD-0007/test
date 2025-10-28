@@ -3,6 +3,7 @@
     <!-- Allow cleartext (HTTP) traffic for local development -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">10.195.33.185</domain>
+        <domain includeSubdomains="true">10.73.178.208</domain>
         <domain includeSubdomains="true">localhost</domain>
         <domain includeSubdomains="true">127.0.0.1</domain>
     </domain-config>

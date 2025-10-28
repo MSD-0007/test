@@ -121,8 +121,9 @@ export default function PingListener({ userId }: PingListenerProps) {
       });
     }
 
-    onPingReceived((pingData: IncomingPing) => {
-      console.log('📨 Ping received via Socket.IO:', pingData);
+    // Common ping handling function
+    const handleIncomingPing = (pingData: IncomingPing) => {
+      console.log('🔔 Processing incoming ping:', pingData);
       
       // Trigger vibration based on ping type
       triggerVibration(pingData.type);
@@ -137,7 +138,30 @@ export default function PingListener({ userId }: PingListenerProps) {
       setTimeout(() => {
         setNotifications((prev) => prev.filter((n) => n.timestamp !== pingData.timestamp));
       }, 5000);
+    };
+
+    // Handle pings from Socket.IO
+    onPingReceived((pingData: IncomingPing) => {
+      console.log('📨 Ping received via Socket.IO:', pingData);
+      handleIncomingPing(pingData);
     });
+
+    // Handle pings from FCM/Push notifications (when socket is not connected)
+    const handleNewPingEvent = (event: CustomEvent) => {
+      console.log('📨 Ping received via FCM event:', event.detail);
+      const pingData: IncomingPing = {
+        from: event.detail.from || 'Unknown',
+        to: userId,
+        message: event.detail.message || 'You received a ping!',
+        type: event.detail.type || 'default',
+        timestamp: Date.now()
+      };
+      handleIncomingPing(pingData);
+    };
+
+    // Listen for FCM ping events
+    window.addEventListener('new-ping', handleNewPingEvent as EventListener);
+    console.log('✅ Added new-ping event listener');
 
     onNotificationClick((notification) => {
       console.log('🔔 OneSignal notification clicked:', notification);
@@ -145,6 +169,7 @@ export default function PingListener({ userId }: PingListenerProps) {
 
     return () => {
       removePingListener();
+      window.removeEventListener('new-ping', handleNewPingEvent as EventListener);
     };
   }, [userId]);
 
