@@ -5,7 +5,7 @@ import '../models/ping_type.dart';
 import '../services/firebase_service.dart';
 import '../services/notification_service.dart';
 import '../services/haptic_service.dart';
-import 'moments_provider.dart';
+import 'supabase_moments_provider.dart';
 
 class AppStateProvider extends ChangeNotifier {
   // User state
@@ -17,11 +17,11 @@ class AppStateProvider extends ChangeNotifier {
   final List<PingMessage> _recentMessages = [];
   bool _isListening = false;
 
-  // Services
-  final FirebaseService _firebaseService = FirebaseService();
-  final NotificationService _notificationService = NotificationService();
-  final HapticService _hapticService = HapticService();
-  MomentsProvider? _momentsProvider;
+  // Services (lazy-initialized to avoid Firebase initialization issues)
+  FirebaseService? _firebaseService;
+  NotificationService? _notificationService;
+  HapticService? _hapticService;
+  SupabaseMomentsProvider? _supabaseMomentsProvider;
 
   // Getters
   String? get currentUserId => _currentUserId;
@@ -43,9 +43,14 @@ class AppStateProvider extends ChangeNotifier {
     return 'unknown';
   }
 
-  // Set moments provider reference
-  void setMomentsProvider(MomentsProvider momentsProvider) {
-    _momentsProvider = momentsProvider;
+  // Lazy service getters
+  FirebaseService get firebaseService => _firebaseService ??= FirebaseService();
+  NotificationService get notificationService => _notificationService ??= NotificationService();
+  HapticService get hapticService => _hapticService ??= HapticService();
+
+  // Set Supabase moments provider reference
+  void setSupabaseMomentsProvider(SupabaseMomentsProvider momentsProvider) {
+    _supabaseMomentsProvider = momentsProvider;
   }
 
   // Initialize app state
@@ -62,7 +67,7 @@ class AppStateProvider extends ChangeNotifier {
         _isAuthenticated = true;
         
         // Set current user in moments provider
-        _momentsProvider?.setCurrentUser(savedUserId);
+        _supabaseMomentsProvider?.setCurrentUser(savedUserId);
         
         // Start listening for messages
         await _startMessageListener();
@@ -105,7 +110,7 @@ class AppStateProvider extends ChangeNotifier {
       _isAuthenticated = true;
       
       // Set current user in moments provider
-      _momentsProvider?.setCurrentUser(userId);
+      _supabaseMomentsProvider?.setCurrentUser(userId);
       
       // Save to preferences
       final prefs = await SharedPreferences.getInstance();
@@ -131,7 +136,7 @@ class AppStateProvider extends ChangeNotifier {
       _isListening = true;
       
       // Create a persistent listener that survives background
-      _firebaseService.listenForMessages(_currentUserId!).listen(
+      firebaseService.listenForMessages(_currentUserId!).listen(
         (message) async {
           print('📨 ✅ Message received in app state: ${message.type} from ${message.from}');
           
@@ -144,7 +149,7 @@ class AppStateProvider extends ChangeNotifier {
           
           // Show notification (this will work even in background)
           try {
-            await _notificationService.showPingNotification(message);
+            await notificationService.showPingNotification(message);
             print('🔔 Notification shown for message from ${message.from}');
           } catch (e) {
             print('❌ Error showing notification: $e');
@@ -153,7 +158,7 @@ class AppStateProvider extends ChangeNotifier {
           // Trigger haptic feedback (only works in foreground)
           try {
             final pingType = PingType.fromString(message.type);
-            await _hapticService.triggerPingHaptic(pingType);
+            await hapticService.triggerPingHaptic(pingType);
             print('📳 Haptic feedback triggered');
           } catch (e) {
             print('⚠️ Haptic feedback failed (probably in background): $e');
@@ -193,27 +198,27 @@ class AppStateProvider extends ChangeNotifier {
       if (type == null) return false;
       
       // Trigger haptic feedback
-      await _hapticService.triggerPingHaptic(type);
+      await hapticService.triggerPingHaptic(type);
       
       // Send message
-      final success = await _firebaseService.sendPing(
+      final success = await firebaseService.sendPing(
         to: recipientId,
         from: _currentUserId!,
         type: type,
       );
       
       if (success) {
-        await _hapticService.triggerSuccess();
+        await hapticService.triggerSuccess();
         print('✅ Ping sent successfully: $pingTypeValue');
       } else {
-        await _hapticService.triggerError();
+        await hapticService.triggerError();
         print('❌ Failed to send ping: $pingTypeValue');
       }
       
       return success;
     } catch (e) {
       print('❌ Error sending ping: $e');
-      await _hapticService.triggerError();
+      await hapticService.triggerError();
       return false;
     } finally {
       _setLoading(false);
@@ -223,12 +228,12 @@ class AppStateProvider extends ChangeNotifier {
   // Test notifications
   Future<void> testNotifications() async {
     try {
-      await _notificationService.showTestNotification();
-      await _hapticService.triggerSuccess();
+      await notificationService.showTestNotification();
+      await hapticService.triggerSuccess();
       print('🧪 Test notification sent');
     } catch (e) {
       print('❌ Error sending test notification: $e');
-      await _hapticService.triggerError();
+      await hapticService.triggerError();
     }
   }
 
@@ -245,7 +250,7 @@ class AppStateProvider extends ChangeNotifier {
       await prefs.remove('user_id');
       
       // Dispose Firebase listener
-      _firebaseService.dispose();
+      _firebaseService?.dispose();
       
       notifyListeners();
       print('✅ User logged out');
@@ -274,7 +279,7 @@ class AppStateProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _firebaseService.dispose();
+    _firebaseService?.dispose();
     super.dispose();
   }
 }

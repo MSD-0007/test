@@ -7,7 +7,7 @@ import 'dart:ui';
 import 'package:image_picker/image_picker.dart';
 
 import '../theme/app_theme.dart';
-import '../providers/moments_provider.dart';
+import '../providers/supabase_moments_provider.dart';
 import '../providers/app_state_provider.dart';
 
 class MomentsSection extends StatelessWidget {
@@ -15,7 +15,7 @@ class MomentsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<MomentsProvider>(
+    return Consumer<SupabaseMomentsProvider>(
       builder: (context, momentsProvider, child) {
         return Column(
           children: [
@@ -46,19 +46,39 @@ class MomentsSection extends StatelessWidget {
             // Add new moment button
             _buildAddMomentButton(context, momentsProvider),
             
+            const SizedBox(height: AppTheme.spacingM),
+            
+            // Refresh button
+            _buildRefreshButton(context, momentsProvider),
+            
             const SizedBox(height: AppTheme.spacingXL),
             
-            // Moments grid or empty state
-            momentsProvider.moments.isEmpty
-                ? _buildEmptyState()
-                : _buildMomentsGrid(momentsProvider.moments),
+            // Moments grid or empty state with pull-to-refresh
+            RefreshIndicator(
+              onRefresh: () async {
+                print('🔄 Pull-to-refresh triggered');
+                await momentsProvider.refresh();
+              },
+              child: momentsProvider.moments.isEmpty
+                  ? SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: SizedBox(
+                        height: 300,
+                        child: _buildEmptyState(),
+                      ),
+                    )
+                  : SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: _buildMomentsGrid(momentsProvider.moments),
+                    ),
+            ),
           ],
         );
       },
     );
   }
 
-  Widget _buildAddMomentButton(BuildContext context, MomentsProvider provider) {
+  Widget _buildAddMomentButton(BuildContext context, SupabaseMomentsProvider provider) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(AppTheme.radiusL),
       child: BackdropFilter(
@@ -150,7 +170,10 @@ class MomentsSection extends StatelessWidget {
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
                       child: ElevatedButton.icon(
-                        onPressed: () => _showImagePicker(context, provider),
+                        onPressed: () {
+                          print('🎯 Add photo button pressed!');
+                          _showImagePicker(context, provider);
+                        },
                         icon: const Icon(Icons.add_photo_alternate, color: Colors.white),
                         label: const Text(
                           'Choose Photo',
@@ -189,6 +212,32 @@ class MomentsSection extends StatelessWidget {
     .animate()
     .fadeIn(duration: 800.ms, delay: 400.ms)
     .slideY(begin: 0.3, end: 0);
+  }
+
+  Widget _buildRefreshButton(BuildContext context, SupabaseMomentsProvider provider) {
+    return Center(
+      child: ElevatedButton.icon(
+        onPressed: () async {
+          print('🔄 Manual refresh triggered');
+          await provider.refresh();
+        },
+        icon: const Icon(Icons.refresh, color: Colors.white),
+        label: const Text(
+          'Refresh Photos',
+          style: TextStyle(color: Colors.white, fontSize: 14),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.8),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppTheme.spacingL,
+            vertical: AppTheme.spacingS,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radiusM),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildEmptyState() {
@@ -239,7 +288,7 @@ class MomentsSection extends StatelessWidget {
   Widget _buildMomentCard(Map<String, dynamic> moment, int index) {
     return Consumer<AppStateProvider>(
       builder: (context, appState, child) {
-        final isOwner = moment['uploadedBy'] == appState.currentUserId;
+        final isOwner = moment['uploaded_by'] == appState.currentUserId;
         
         return Container(
           decoration: BoxDecoration(
@@ -264,11 +313,27 @@ class MomentsSection extends StatelessWidget {
               Positioned.fill(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(AppTheme.radiusL),
-                  child: Image.memory(
-                    base64Decode(moment['imageData']),
+                  child: Image.network(
+                    moment['image_url'],
                     fit: BoxFit.cover,
                     width: double.infinity,
                     height: double.infinity,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                              : null,
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: Colors.grey[300],
+                        child: const Icon(Icons.error, color: Colors.red),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -313,11 +378,27 @@ class MomentsSection extends StatelessWidget {
                     ),
                     child: Opacity(
                       opacity: 0.85,
-                      child: Image.memory(
-                        base64Decode(moment['imageData']),
+                      child: Image.network(
+                        moment['image_url'],
                         fit: BoxFit.cover,
                         width: double.infinity,
                         height: double.infinity,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Center(
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                  : null,
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: Colors.grey[300],
+                            child: const Icon(Icons.error, color: Colors.red),
+                          );
+                        },
                       ),
                     ),
                   ),
@@ -429,7 +510,7 @@ class MomentsSection extends StatelessWidget {
                         ],
                       ),
                       child: Text(
-                        moment['uploadedBy'].toString().toUpperCase(),
+                        moment['uploaded_by'].toString().toUpperCase(),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 11,
@@ -451,7 +532,8 @@ class MomentsSection extends StatelessWidget {
     );
   }
 
-  void _showImagePicker(BuildContext context, MomentsProvider provider) {
+  void _showImagePicker(BuildContext context, SupabaseMomentsProvider provider) {
+    print('📱 Showing image picker modal...');
     showModalBottomSheet(
       context: context,
       backgroundColor: AppTheme.cardBackground,
@@ -476,6 +558,7 @@ class MomentsSection extends StatelessWidget {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
+                        print('📷 Camera button pressed!');
                         Navigator.pop(context);
                         _pickImage(context, ImageSource.camera, provider);
                       },
@@ -496,6 +579,7 @@ class MomentsSection extends StatelessWidget {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
+                        print('🖼️ Gallery button pressed!');
                         Navigator.pop(context);
                         _pickImage(context, ImageSource.gallery, provider);
                       },
@@ -521,9 +605,13 @@ class MomentsSection extends StatelessWidget {
     );
   }
 
-  Future<void> _pickImage(BuildContext context, ImageSource source, MomentsProvider provider) async {
+  Future<void> _pickImage(BuildContext context, ImageSource source, SupabaseMomentsProvider provider) async {
     print('📸 Starting image picker...');
     print('📋 Source: $source');
+    
+    // Store the navigator and scaffold messenger before async operations
+    final navigator = Navigator.of(context);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     
     // Check authentication first
     final appState = context.read<AppStateProvider>();
@@ -531,7 +619,7 @@ class MomentsSection extends StatelessWidget {
     print('📋 Is authenticated: ${appState.isAuthenticated}');
     
     if (!appState.isAuthenticated || appState.currentUserId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      scaffoldMessenger.showSnackBar(
         const SnackBar(
           content: Text('Please authenticate first! Go to settings and select your user.'),
           backgroundColor: Colors.red,
@@ -540,52 +628,72 @@ class MomentsSection extends StatelessWidget {
       return;
     }
     
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: source);
-    
-    print('📋 Picked file: ${pickedFile?.path}');
-    
-    if (pickedFile != null) {
-      print('📋 File selected, showing loading dialog...');
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(source: source);
       
-      // Show loading indicator
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      print('📋 Picked file: ${pickedFile?.path}');
       
-      try {
-        print('📋 Calling provider.addMoment...');
-        await provider.addMoment(pickedFile.path);
-        print('✅ Photo upload successful!');
+      if (pickedFile != null) {
+        print('📋 File selected, starting upload process...');
         
-        if (context.mounted) {
-          Navigator.of(context).pop(); // Close loading
-          ScaffoldMessenger.of(context).showSnackBar(
+        // Show loading dialog using stored navigator
+        showDialog(
+          context: navigator.context,
+          barrierDismissible: false,
+          builder: (dialogContext) => const AlertDialog(
+            content: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(width: 16),
+                Text('Uploading photo...'),
+              ],
+            ),
+          ),
+        );
+        
+        try {
+          print('📋 Calling provider.addMoment...');
+          await provider.addMoment(pickedFile.path);
+          print('✅ Photo upload successful!');
+          
+          // Close loading dialog
+          navigator.pop();
+          
+          // Show success message
+          scaffoldMessenger.showSnackBar(
             const SnackBar(
               content: Text('Photo uploaded successfully! 📸'),
               backgroundColor: Colors.green,
             ),
           );
-        }
-      } catch (e) {
-        print('❌ Photo upload failed: $e');
-        
-        if (context.mounted) {
-          Navigator.of(context).pop(); // Close loading
-          ScaffoldMessenger.of(context).showSnackBar(
+        } catch (e) {
+          print('❌ Photo upload failed: $e');
+          print('❌ Error details: ${e.toString()}');
+          
+          // Close loading dialog
+          navigator.pop();
+          
+          // Show error message
+          scaffoldMessenger.showSnackBar(
             SnackBar(
               content: Text('Failed to upload photo: $e'),
               backgroundColor: Colors.red,
             ),
           );
         }
+      } else {
+        print('📋 No file selected');
       }
-    } else {
-      print('📋 No file selected');
+    } catch (e) {
+      print('❌ Image picker failed: $e');
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('Failed to pick image: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -604,7 +712,7 @@ class MomentsSection extends StatelessWidget {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
-              final provider = context.read<MomentsProvider>();
+              final provider = context.read<SupabaseMomentsProvider>();
               await provider.deleteMoment(momentId);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),

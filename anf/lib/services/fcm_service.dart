@@ -93,9 +93,9 @@ class FCMService {
   Future<void> _subscribeToTopics() async {
     try {
       await _messaging.subscribeToTopic('love_pings');
-      await _messaging.subscribeToTopic('ndg_pings');
-      await _messaging.subscribeToTopic('ak_pings');
-      print('✅ Subscribed to FCM topics');
+      await _messaging.subscribeToTopic('ndg');
+      await _messaging.subscribeToTopic('ak');
+      print('✅ Subscribed to FCM topics for both users');
     } catch (e) {
       print('❌ Error subscribing to topics: $e');
     }
@@ -104,6 +104,8 @@ class FCMService {
   // Handle foreground messages
   void _handleForegroundMessage(RemoteMessage message) {
     print('📱 Processing foreground message...');
+    print('📋 Message data: ${message.data}');
+    print('📋 Message notification: ${message.notification?.title}');
     
     if (message.data.isNotEmpty) {
       _processMessageData(message.data);
@@ -148,6 +150,9 @@ class FCMService {
         
         // Show notification using the notification service
         _notificationService.showPingNotification(ping);
+      } else if (data.containsKey('type') && data['type'] == 'photo_upload') {
+        print('📸 Photo upload notification from ${data['from']}');
+        // Photo notifications are handled by the notification itself
       }
     } catch (e) {
       print('❌ Error processing message data: $e');

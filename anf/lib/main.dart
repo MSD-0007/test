@@ -6,9 +6,10 @@ import 'theme/app_theme.dart';
 import 'services/firebase_service.dart';
 import 'services/notification_service.dart';
 import 'services/fcm_service.dart';
+import 'services/supabase_service.dart';
 import 'services/haptic_service.dart';
 import 'providers/app_state_provider.dart';
-import 'providers/moments_provider.dart';
+import 'providers/supabase_moments_provider.dart';
 import 'screens/splash_screen.dart';
 
 void main() async {
@@ -38,16 +39,15 @@ void main() async {
 
 Future<void> _initializeServices() async {
   try {
-    // Initialize Firebase
+    // Initialize Firebase (includes FCM)
     await FirebaseService().initialize();
+    
+    // Initialize Supabase for photo storage
+    await SupabaseService().initialize();
     
     // Initialize Notifications
     await NotificationService().initialize();
     await NotificationService().requestPermissions();
-    
-    // Initialize FCM for background notifications
-    final fcmService = FCMService();
-    await fcmService.initialize();
     
     // Initialize Haptics
     await HapticService().initialize();
@@ -66,11 +66,11 @@ class SpecialLoveApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AppStateProvider()),
-        ChangeNotifierProxyProvider<AppStateProvider, MomentsProvider>(
-          create: (_) => MomentsProvider(),
+        ChangeNotifierProxyProvider<AppStateProvider, SupabaseMomentsProvider>(
+          create: (_) => SupabaseMomentsProvider(),
           update: (_, appStateProvider, momentsProvider) {
-            momentsProvider ??= MomentsProvider();
-            appStateProvider.setMomentsProvider(momentsProvider);
+            momentsProvider ??= SupabaseMomentsProvider();
+            appStateProvider.setSupabaseMomentsProvider(momentsProvider);
             // Set current user if already authenticated
             if (appStateProvider.currentUserId != null) {
               momentsProvider.setCurrentUser(appStateProvider.currentUserId!);

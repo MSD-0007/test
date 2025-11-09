@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import '../firebase_options.dart';
 import '../models/ping_message.dart';
 import '../models/ping_type.dart';
+import 'fcm_service.dart';
 
 class FirebaseService {
   static final FirebaseService _instance = FirebaseService._internal();
@@ -13,6 +14,8 @@ class FirebaseService {
   FirebaseFirestore? _firestore;
   StreamSubscription<QuerySnapshot>? _messageSubscription;
   DateTime? _listenerStartTime;
+  
+  FCMService? _fcmService;
 
   // Initialize Firebase
   Future<void> initialize() async {
@@ -21,6 +24,11 @@ class FirebaseService {
         options: DefaultFirebaseOptions.currentPlatform,
       );
       _firestore = FirebaseFirestore.instance;
+      
+      // Initialize FCM after Firebase is ready
+      _fcmService = FCMService();
+      await _fcmService!.initialize();
+      
       print('✅ Firebase initialized successfully');
     } catch (e) {
       print('❌ Error initializing Firebase: $e');
@@ -28,7 +36,7 @@ class FirebaseService {
     }
   }
 
-  // Send a ping message
+  // Send a ping message with hybrid approach
   Future<bool> sendPing({
     required String to,
     required String from,
@@ -52,31 +60,15 @@ class FirebaseService {
         throw Exception('Invalid ping message data');
       }
 
-      // Add to Firestore (for real-time listeners)
+      // Method 1: Add to Firestore (for real-time listeners when app is open)
       final docRef = await _firestore!
           .collection('pings')
           .add(pingMessage.toFirestore());
 
-      // Also add to FCM collection for background notifications
-      await _firestore!
-          .collection('fcm_notifications')
-          .add({
-        'to': to,
-        'from': from,
-        'title': '💕 ${from.toUpperCase()} sent you a ping!',
-        'body': '${type.emoji} ${type.label}: ${type.message}',
-        'data': {
-          'ping_id': docRef.id,
-          'ping_type': type.value,
-          'ping_from': from,
-          'ping_to': to,
-        },
-        'timestamp': FieldValue.serverTimestamp(),
-        'processed': false,
-      });
+      print('✅ Ping sent to Firebase: ${type.label} from $from to $to');
 
-      print('✅ Ping sent successfully: ${type.label} from $from to $to');
-      print('📤 FCM notification queued for background delivery');
+      // Note: Using Firebase for notifications, Supabase for photo storage
+
       return true;
     } catch (e) {
       print('❌ Error sending ping: $e');
