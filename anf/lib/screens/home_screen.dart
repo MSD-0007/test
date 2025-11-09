@@ -6,7 +6,7 @@ import '../theme/app_theme.dart';
 import '../widgets/floating_particles.dart';
 import '../widgets/ping_grid.dart';
 import '../widgets/moments_section.dart';
-import '../widgets/hugs_section.dart';
+
 import '../providers/app_state_provider.dart';
 import 'auth_screen.dart';
 
@@ -34,30 +34,33 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Header with user info
                   _buildHeader(),
                   
-                  // Main content area
+                  // Main content area with pull-to-refresh
                   Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(AppTheme.spacingL),
-                      child: Column(
-                        children: [
-                          // Hero section
-                          _buildHeroSection(),
-                          
-                          const SizedBox(height: AppTheme.spacingXXL),
-                          
-                          // Ping buttons grid
-                          _buildPingGrid(),
-                          
-                          const SizedBox(height: AppTheme.spacingXXL),
-                          
-                          // Moments Together section
-                          const MomentsSection(),
-                          
-                          const SizedBox(height: AppTheme.spacingXXL),
-                          
-                          // Hidden Hugs section
-                          const HugsSection(),
-                        ],
+                    child: RefreshIndicator(
+                      onRefresh: () async {
+                        print('🔄 App-wide refresh triggered');
+                        final appState = context.read<AppStateProvider>();
+                        await appState.initialize();
+                      },
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.all(AppTheme.spacingL),
+                        child: Column(
+                          children: [
+                            // Hero section
+                            _buildHeroSection(),
+                            
+                            const SizedBox(height: AppTheme.spacingXXL),
+                            
+                            // Ping buttons grid
+                            _buildPingGrid(),
+                            
+                            const SizedBox(height: AppTheme.spacingXXL),
+                            
+                            // Moments Together section
+                            const MomentsSection(),
+                          ],
+                        ),
                       ),
                     ),
                   ),

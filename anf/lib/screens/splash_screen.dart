@@ -139,7 +139,7 @@ class _SplashScreenState extends State<SplashScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Animated heart icon
+                  // Animated infinity icon
                   AnimatedBuilder(
                     animation: _heartScale,
                     builder: (context, child) {
@@ -152,14 +152,14 @@ class _SplashScreenState extends State<SplashScreen>
                             shape: BoxShape.circle,
                             gradient: const LinearGradient(
                               colors: [
-                                Color(0xFFE91E63),
-                                Color(0xFFF44336),
+                                Color(0xFF9C27B0),
+                                Color(0xFF673AB7),
                               ],
                             ),
                             boxShadow: AppTheme.glowShadow,
                           ),
                           child: const Icon(
-                            Icons.favorite,
+                            Icons.all_inclusive,
                             size: 60,
                             color: Colors.white,
                           ),
@@ -179,10 +179,12 @@ class _SplashScreenState extends State<SplashScreen>
                         child: Column(
                           children: [
                             Text(
-                              'Special Love',
+                              'Always and Forever',
                               style: AppTheme.heading1.copyWith(
-                                fontSize: 42,
-                                fontWeight: FontWeight.w400,
+                                fontSize: 38,
+                                fontWeight: FontWeight.w300,
+                                fontStyle: FontStyle.italic,
+                                letterSpacing: 1.2,
                               ),
                               textAlign: TextAlign.center,
                             ),

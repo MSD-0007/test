@@ -79,161 +79,81 @@ class MomentsSection extends StatelessWidget {
   }
 
   Widget _buildAddMomentButton(BuildContext context, SupabaseMomentsProvider provider) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(AppTheme.radiusL),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(AppTheme.spacingL),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.white.withValues(alpha: 0.5),
-                Colors.white.withValues(alpha: 0.3),
-                Colors.white.withValues(alpha: 0.2),
-                Colors.black.withValues(alpha: 0.1),
-              ],
-              stops: const [0.0, 0.3, 0.7, 1.0],
-            ),
-            borderRadius: BorderRadius.circular(AppTheme.radiusL),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.6),
-              width: 2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
-                blurRadius: 25,
-                offset: const Offset(0, 10),
-                spreadRadius: 3,
-              ),
-              BoxShadow(
-                color: Colors.white.withValues(alpha: 0.3),
-                blurRadius: 15,
-                offset: const Offset(0, -5),
-              ),
-            ],
+    return Column(
+      children: [
+        // Simple header
+        Text(
+          'Add a New Moment 📸',
+          style: AppTheme.heading3.copyWith(
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
           ),
-          child: Stack(
-            children: [
-              // Glass reflection effect
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                height: 40,
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.white.withValues(alpha: 0.7),
-                        Colors.white.withValues(alpha: 0.3),
-                        Colors.transparent,
-                      ],
-                    ),
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(AppTheme.radiusL),
-                      topRight: Radius.circular(AppTheme.radiusL),
-                    ),
-                  ),
+          textAlign: TextAlign.center,
+        )
+        .animate()
+        .fadeIn(duration: 600.ms, delay: 300.ms),
+        
+        const SizedBox(height: AppTheme.spacingL),
+        
+        // Centered button
+        Center(
+          child: SizedBox(
+            width: 200,
+            height: 50,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                print('🎯 Add photo button pressed!');
+                _showImagePicker(context, provider);
+              },
+              icon: const Icon(Icons.add_photo_alternate, color: Colors.white, size: 20),
+              label: const Text(
+                'Choose Photo',
+                style: TextStyle(
+                  color: Colors.white, 
+                  fontSize: 16, 
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              
-              Column(
-                children: [
-                  Text(
-                    'Add a New Moment 📸',
-                    style: AppTheme.heading3.copyWith(
-                      fontSize: 20,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black.withValues(alpha: 0.3),
-                          offset: const Offset(0, 2),
-                          blurRadius: 4,
-                        ),
-                      ],
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  
-                  const SizedBox(height: AppTheme.spacingM),
-                  
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(AppTheme.radiusL),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          print('🎯 Add photo button pressed!');
-                          _showImagePicker(context, provider);
-                        },
-                        icon: const Icon(Icons.add_photo_alternate, color: Colors.white),
-                        label: const Text(
-                          'Choose Photo',
-                          style: TextStyle(
-                            color: Colors.white, 
-                            fontSize: 16, 
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6366F1).withValues(alpha: 0.8),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppTheme.spacingXL,
-                            vertical: AppTheme.spacingM,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppTheme.radiusL),
-                            side: BorderSide(
-                              color: Colors.white.withValues(alpha: 0.4),
-                              width: 2,
-                            ),
-                          ),
-                          elevation: 0,
-                          shadowColor: Colors.transparent,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6366F1),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                ),
+                elevation: 8,
+                shadowColor: const Color(0xFF6366F1).withValues(alpha: 0.3),
               ),
-            ],
+            ),
           ),
-        ),
-      ),
-    )
-    .animate()
-    .fadeIn(duration: 800.ms, delay: 400.ms)
-    .slideY(begin: 0.3, end: 0);
+        )
+        .animate()
+        .fadeIn(duration: 600.ms, delay: 500.ms)
+        .scale(begin: const Offset(0.8, 0.8), end: const Offset(1.0, 1.0)),
+      ],
+    );
   }
 
   Widget _buildRefreshButton(BuildContext context, SupabaseMomentsProvider provider) {
     return Center(
-      child: ElevatedButton.icon(
-        onPressed: () async {
-          print('🔄 Manual refresh triggered');
-          await provider.refresh();
-        },
-        icon: const Icon(Icons.refresh, color: Colors.white),
-        label: const Text(
-          'Refresh Photos',
-          style: TextStyle(color: Colors.white, fontSize: 14),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.8),
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppTheme.spacingL,
-            vertical: AppTheme.spacingS,
+      child: SizedBox(
+        width: 160,
+        height: 40,
+        child: ElevatedButton.icon(
+          onPressed: () async {
+            print('🔄 Manual refresh triggered');
+            await provider.refresh();
+          },
+          icon: const Icon(Icons.refresh, color: Colors.white, size: 18),
+          label: const Text(
+            'Refresh Photos',
+            style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
           ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppTheme.radiusM),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF10B981),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppTheme.radiusM),
+            ),
+            elevation: 4,
+            shadowColor: const Color(0xFF10B981).withValues(alpha: 0.3),
           ),
         ),
       ),
@@ -290,24 +210,26 @@ class MomentsSection extends StatelessWidget {
       builder: (context, appState, child) {
         final isOwner = moment['uploaded_by'] == appState.currentUserId;
         
-        return Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppTheme.radiusL),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.25),
-                blurRadius: 25,
-                offset: const Offset(0, 10),
-                spreadRadius: 3,
-              ),
-              BoxShadow(
-                color: Colors.white.withValues(alpha: 0.2),
-                blurRadius: 15,
-                offset: const Offset(0, -3),
-              ),
-            ],
-          ),
-          child: Stack(
+        return GestureDetector(
+          onTap: () => _showPhotoViewer(context, moment),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppTheme.radiusL),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.25),
+                  blurRadius: 25,
+                  offset: const Offset(0, 10),
+                  spreadRadius: 3,
+                ),
+                BoxShadow(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  blurRadius: 15,
+                  offset: const Offset(0, -3),
+                ),
+              ],
+            ),
+            child: Stack(
             children: [
               // Background image (slightly blurred for glass effect)
               Positioned.fill(
@@ -523,6 +445,7 @@ class MomentsSection extends StatelessWidget {
                 ),
               ),
             ],
+            ),
           ),
         )
         .animate(delay: Duration(milliseconds: 100 * index))
@@ -695,6 +618,123 @@ class MomentsSection extends StatelessWidget {
         ),
       );
     }
+  }
+
+  void _showPhotoViewer(BuildContext context, Map<String, dynamic> moment) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Stack(
+          children: [
+            // Photo viewer
+            Center(
+              child: Container(
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 0.9,
+                  maxHeight: MediaQuery.of(context).size.height * 0.8,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                  child: Image.network(
+                    moment['image_url'],
+                    fit: BoxFit.contain,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        width: 200,
+                        height: 200,
+                        color: Colors.black.withValues(alpha: 0.3),
+                        child: const Center(
+                          child: CircularProgressIndicator(color: Colors.white),
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: 200,
+                        height: 200,
+                        color: Colors.black.withValues(alpha: 0.3),
+                        child: const Center(
+                          child: Icon(Icons.error, color: Colors.white, size: 50),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+            
+            // Close button
+            Positioned(
+              top: 40,
+              right: 20,
+              child: GestureDetector(
+                onTap: () => Navigator.of(context).pop(),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.close,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+              ),
+            ),
+            
+            // Photo info
+            Positioned(
+              bottom: 40,
+              left: 20,
+              right: 20,
+              child: Container(
+                padding: const EdgeInsets.all(AppTheme.spacingM),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Uploaded by ${moment['uploaded_by'].toString().toUpperCase()}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (moment['created_at'] != null)
+                      Text(
+                        'Shared with love 💕',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          fontSize: 14,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _deleteMoment(BuildContext context, String momentId) {
