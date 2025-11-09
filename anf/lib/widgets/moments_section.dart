@@ -1,0 +1,602 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:provider/provider.dart';
+import 'dart:io';
+import 'dart:convert';
+import 'dart:ui';
+import 'package:image_picker/image_picker.dart';
+
+import '../theme/app_theme.dart';
+import '../providers/moments_provider.dart';
+import '../providers/app_state_provider.dart';
+
+class MomentsSection extends StatelessWidget {
+  const MomentsSection({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<MomentsProvider>(
+      builder: (context, momentsProvider, child) {
+        return Column(
+          children: [
+            // Section header
+            Text(
+              'Our Moments Together',
+              style: AppTheme.heading2.copyWith(fontSize: 28),
+              textAlign: TextAlign.center,
+            )
+            .animate()
+            .fadeIn(duration: 600.ms)
+            .slideY(begin: -0.2, end: 0),
+            
+            const SizedBox(height: AppTheme.spacingM),
+            
+            Text(
+              'Every photo tells our story of love 💕',
+              style: AppTheme.bodyLarge.copyWith(
+                color: AppTheme.textTertiary,
+              ),
+              textAlign: TextAlign.center,
+            )
+            .animate(delay: 200.ms)
+            .fadeIn(duration: 600.ms),
+            
+            const SizedBox(height: AppTheme.spacingXL),
+            
+            // Add new moment button
+            _buildAddMomentButton(context, momentsProvider),
+            
+            const SizedBox(height: AppTheme.spacingXL),
+            
+            // Moments grid or empty state
+            momentsProvider.moments.isEmpty
+                ? _buildEmptyState()
+                : _buildMomentsGrid(momentsProvider.moments),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildAddMomentButton(BuildContext context, MomentsProvider provider) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppTheme.radiusL),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(AppTheme.spacingL),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white.withValues(alpha: 0.5),
+                Colors.white.withValues(alpha: 0.3),
+                Colors.white.withValues(alpha: 0.2),
+                Colors.black.withValues(alpha: 0.1),
+              ],
+              stops: const [0.0, 0.3, 0.7, 1.0],
+            ),
+            borderRadius: BorderRadius.circular(AppTheme.radiusL),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.6),
+              width: 2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 25,
+                offset: const Offset(0, 10),
+                spreadRadius: 3,
+              ),
+              BoxShadow(
+                color: Colors.white.withValues(alpha: 0.3),
+                blurRadius: 15,
+                offset: const Offset(0, -5),
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              // Glass reflection effect
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 40,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.white.withValues(alpha: 0.7),
+                        Colors.white.withValues(alpha: 0.3),
+                        Colors.transparent,
+                      ],
+                    ),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(AppTheme.radiusL),
+                      topRight: Radius.circular(AppTheme.radiusL),
+                    ),
+                  ),
+                ),
+              ),
+              
+              Column(
+                children: [
+                  Text(
+                    'Add a New Moment 📸',
+                    style: AppTheme.heading3.copyWith(
+                      fontSize: 20,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black.withValues(alpha: 0.3),
+                          offset: const Offset(0, 2),
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  
+                  const SizedBox(height: AppTheme.spacingM),
+                  
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                      child: ElevatedButton.icon(
+                        onPressed: () => _showImagePicker(context, provider),
+                        icon: const Icon(Icons.add_photo_alternate, color: Colors.white),
+                        label: const Text(
+                          'Choose Photo',
+                          style: TextStyle(
+                            color: Colors.white, 
+                            fontSize: 16, 
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF6366F1).withValues(alpha: 0.8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppTheme.spacingXL,
+                            vertical: AppTheme.spacingM,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                            side: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.4),
+                              width: 2,
+                            ),
+                          ),
+                          elevation: 0,
+                          shadowColor: Colors.transparent,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    )
+    .animate()
+    .fadeIn(duration: 800.ms, delay: 400.ms)
+    .slideY(begin: 0.3, end: 0);
+  }
+
+  Widget _buildEmptyState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppTheme.spacingXXL),
+      child: Column(
+        children: [
+          Icon(
+            Icons.photo_library_outlined,
+            size: 64,
+            color: AppTheme.textTertiary.withValues(alpha: 0.5),
+          ),
+          
+          const SizedBox(height: AppTheme.spacingL),
+          
+          Text(
+            'No moments yet. Start adding your beautiful memories together! 💕',
+            style: AppTheme.bodyLarge.copyWith(
+              color: AppTheme.textTertiary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    )
+    .animate()
+    .fadeIn(duration: 800.ms, delay: 600.ms);
+  }
+
+  Widget _buildMomentsGrid(List<Map<String, dynamic>> moments) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: AppTheme.spacingM,
+        mainAxisSpacing: AppTheme.spacingM,
+        childAspectRatio: 1.0,
+      ),
+      itemCount: moments.length,
+      itemBuilder: (context, index) {
+        return _buildMomentCard(moments[index], index);
+      },
+    );
+  }
+
+  Widget _buildMomentCard(Map<String, dynamic> moment, int index) {
+    return Consumer<AppStateProvider>(
+      builder: (context, appState, child) {
+        final isOwner = moment['uploadedBy'] == appState.currentUserId;
+        
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppTheme.radiusL),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.25),
+                blurRadius: 25,
+                offset: const Offset(0, 10),
+                spreadRadius: 3,
+              ),
+              BoxShadow(
+                color: Colors.white.withValues(alpha: 0.2),
+                blurRadius: 15,
+                offset: const Offset(0, -3),
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              // Background image (slightly blurred for glass effect)
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                  child: Image.memory(
+                    base64Decode(moment['imageData']),
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: double.infinity,
+                  ),
+                ),
+              ),
+              
+              // Strong glassmorphism overlay
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Colors.white.withValues(alpha: 0.4),
+                            Colors.white.withValues(alpha: 0.2),
+                            Colors.white.withValues(alpha: 0.1),
+                            Colors.black.withValues(alpha: 0.1),
+                          ],
+                          stops: const [0.0, 0.3, 0.7, 1.0],
+                        ),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              
+              // Image content with reduced opacity to show glass effect
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusL - 2),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusL - 2),
+                    ),
+                    child: Opacity(
+                      opacity: 0.85,
+                      child: Image.memory(
+                        base64Decode(moment['imageData']),
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              
+              // Additional glass reflection effect
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 60,
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(AppTheme.radiusL),
+                    topRight: Radius.circular(AppTheme.radiusL),
+                  ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.white.withValues(alpha: 0.6),
+                          Colors.white.withValues(alpha: 0.2),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              
+              // Delete button (only for owner) with enhanced glassmorphism
+              if (isOwner)
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: GestureDetector(
+                    onTap: () => _deleteMoment(context, moment['id']),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(25),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.red.withValues(alpha: 0.9),
+                                Colors.red.withValues(alpha: 0.7),
+                              ],
+                            ),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.5),
+                              width: 2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.3),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.delete,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              
+              // Uploader indicator with enhanced glassmorphism
+              Positioned(
+                bottom: 10,
+                left: 10,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(15),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.black.withValues(alpha: 0.8),
+                            Colors.black.withValues(alpha: 0.6),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.4),
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        moment['uploadedBy'].toString().toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        )
+        .animate(delay: Duration(milliseconds: 100 * index))
+        .fadeIn(duration: 600.ms)
+        .scale(begin: const Offset(0.8, 0.8), end: const Offset(1.0, 1.0));
+      },
+    );
+  }
+
+  void _showImagePicker(BuildContext context, MomentsProvider provider) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.cardBackground,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppTheme.radiusL)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(AppTheme.spacingL),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Add a New Moment',
+                style: AppTheme.heading3,
+              ),
+              
+              const SizedBox(height: AppTheme.spacingL),
+              
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _pickImage(context, ImageSource.camera, provider);
+                      },
+                      icon: const Icon(Icons.camera_alt, color: Colors.white),
+                      label: const Text('Camera', style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981),
+                        padding: const EdgeInsets.all(AppTheme.spacingM),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                        ),
+                      ),
+                    ),
+                  ),
+                  
+                  const SizedBox(width: AppTheme.spacingM),
+                  
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _pickImage(context, ImageSource.gallery, provider);
+                      },
+                      icon: const Icon(Icons.photo_library, color: Colors.white),
+                      label: const Text('Gallery', style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF8B5CF6),
+                        padding: const EdgeInsets.all(AppTheme.spacingM),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: AppTheme.spacingL),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickImage(BuildContext context, ImageSource source, MomentsProvider provider) async {
+    print('📸 Starting image picker...');
+    print('📋 Source: $source');
+    
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: source);
+    
+    print('📋 Picked file: ${pickedFile?.path}');
+    
+    if (pickedFile != null) {
+      print('📋 File selected, showing loading dialog...');
+      
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+      
+      try {
+        print('📋 Calling provider.addMoment...');
+        await provider.addMoment(pickedFile.path);
+        print('✅ Photo upload successful!');
+        
+        if (context.mounted) {
+          Navigator.of(context).pop(); // Close loading
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Photo uploaded successfully! 📸'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        print('❌ Photo upload failed: $e');
+        
+        if (context.mounted) {
+          Navigator.of(context).pop(); // Close loading
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to upload photo: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } else {
+      print('📋 No file selected');
+    }
+  }
+
+  void _deleteMoment(BuildContext context, String momentId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.cardBackground,
+        title: const Text('Delete Moment', style: AppTheme.heading3),
+        content: const Text('Are you sure you want to delete this moment?', style: AppTheme.bodyMedium),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final provider = context.read<MomentsProvider>();
+              await provider.deleteMoment(momentId);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+}
