@@ -123,15 +123,18 @@ class AppStateProvider extends ChangeNotifier {
     }
   }
 
-  // Start listening for messages
+  // Start listening for messages with background persistence
   Future<void> _startMessageListener() async {
     if (_currentUserId == null || _isListening) return;
     
     try {
       _isListening = true;
       
+      // Create a persistent listener that survives background
       _firebaseService.listenForMessages(_currentUserId!).listen(
         (message) async {
+          print('📨 ✅ Message received in app state: ${message.type} from ${message.from}');
+          
           _recentMessages.insert(0, message);
           
           // Keep only recent messages
@@ -139,23 +142,39 @@ class AppStateProvider extends ChangeNotifier {
             _recentMessages.removeRange(50, _recentMessages.length);
           }
           
-          // Show notification
-          await _notificationService.showPingNotification(message);
+          // Show notification (this will work even in background)
+          try {
+            await _notificationService.showPingNotification(message);
+            print('🔔 Notification shown for message from ${message.from}');
+          } catch (e) {
+            print('❌ Error showing notification: $e');
+          }
           
-          // Trigger haptic feedback
-          final pingType = PingType.fromString(message.type);
-          await _hapticService.triggerPingHaptic(pingType);
+          // Trigger haptic feedback (only works in foreground)
+          try {
+            final pingType = PingType.fromString(message.type);
+            await _hapticService.triggerPingHaptic(pingType);
+            print('📳 Haptic feedback triggered');
+          } catch (e) {
+            print('⚠️ Haptic feedback failed (probably in background): $e');
+          }
           
           notifyListeners();
-          
-          print('📨 Message received and processed: ${message.type} from ${message.from}');
         },
         onError: (error) {
           print('❌ Error in message listener: $error');
+          // Restart listener on error
+          _isListening = false;
+          Future.delayed(const Duration(seconds: 5), () {
+            if (_currentUserId != null) {
+              print('🔄 Restarting message listener after error...');
+              _startMessageListener();
+            }
+          });
         },
       );
       
-      print('👂 Started listening for messages for user: $_currentUserId');
+      print('👂 Started persistent message listener for user: $_currentUserId');
     } catch (e) {
       print('❌ Error starting message listener: $e');
       _isListening = false;

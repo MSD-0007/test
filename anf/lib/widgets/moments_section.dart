@@ -525,6 +525,21 @@ class MomentsSection extends StatelessWidget {
     print('📸 Starting image picker...');
     print('📋 Source: $source');
     
+    // Check authentication first
+    final appState = context.read<AppStateProvider>();
+    print('📋 Current user ID: ${appState.currentUserId}');
+    print('📋 Is authenticated: ${appState.isAuthenticated}');
+    
+    if (!appState.isAuthenticated || appState.currentUserId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please authenticate first! Go to settings and select your user.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: source);
     

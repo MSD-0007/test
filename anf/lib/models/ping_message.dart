@@ -33,6 +33,21 @@ class PingMessage {
     );
   }
 
+  // Create from JSON (for FCM messages)
+  factory PingMessage.fromJson(Map<String, dynamic> json) {
+    return PingMessage(
+      id: json['id'],
+      from: json['from'] ?? '',
+      to: json['to'] ?? '',
+      message: json['message'] ?? '',
+      type: json['type'] ?? '',
+      timestamp: json['timestamp'] != null 
+          ? DateTime.parse(json['timestamp'])
+          : DateTime.now(),
+      delivered: json['delivered'] ?? false,
+    );
+  }
+
   // Convert to Firestore document
   Map<String, dynamic> toFirestore() {
     return {
@@ -41,6 +56,19 @@ class PingMessage {
       'message': message,
       'type': type,
       'timestamp': Timestamp.fromDate(timestamp),
+      'delivered': delivered,
+    };
+  }
+
+  // Convert to JSON (for FCM messages)
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'from': from,
+      'to': to,
+      'message': message,
+      'type': type,
+      'timestamp': timestamp.toIso8601String(),
       'delivered': delivered,
     };
   }

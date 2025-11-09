@@ -52,11 +52,31 @@ class FirebaseService {
         throw Exception('Invalid ping message data');
       }
 
-      await _firestore!
+      // Add to Firestore (for real-time listeners)
+      final docRef = await _firestore!
           .collection('pings')
           .add(pingMessage.toFirestore());
 
+      // Also add to FCM collection for background notifications
+      await _firestore!
+          .collection('fcm_notifications')
+          .add({
+        'to': to,
+        'from': from,
+        'title': '💕 ${from.toUpperCase()} sent you a ping!',
+        'body': '${type.emoji} ${type.label}: ${type.message}',
+        'data': {
+          'ping_id': docRef.id,
+          'ping_type': type.value,
+          'ping_from': from,
+          'ping_to': to,
+        },
+        'timestamp': FieldValue.serverTimestamp(),
+        'processed': false,
+      });
+
       print('✅ Ping sent successfully: ${type.label} from $from to $to');
+      print('📤 FCM notification queued for background delivery');
       return true;
     } catch (e) {
       print('❌ Error sending ping: $e');
@@ -64,7 +84,7 @@ class FirebaseService {
     }
   }
 
-  // Listen for incoming messages
+  // Listen for incoming messages with background support
   Stream<PingMessage> listenForMessages(String userId) {
     if (_firestore == null) {
       throw Exception('Firebase not initialized');
@@ -74,15 +94,15 @@ class FirebaseService {
     _listenerStartTime = DateTime.now();
     print('🎯 Starting to listen for messages for user: $userId at ${_listenerStartTime}');
     
-    // Listen for ALL messages to this user (simpler query, more reliable)
+    // Listen for ALL messages to this user with enhanced background support
     return _firestore!
         .collection('pings')
         .where('to', isEqualTo: userId)
-        .snapshots()
+        .snapshots(includeMetadataChanges: true) // Include metadata changes for better background sync
         .asyncMap((snapshot) async {
       final List<PingMessage> newMessages = [];
       
-      print('📡 Received ${snapshot.docChanges.length} document changes');
+      print('📡 Received ${snapshot.docChanges.length} document changes (from cache: ${snapshot.metadata.isFromCache})');
       
       for (final change in snapshot.docChanges) {
         if (change.type == DocumentChangeType.added) {
@@ -92,17 +112,18 @@ class FirebaseService {
           print('📋 Ping timestamp: ${ping.timestamp}');
           print('📋 Ping delivered: ${ping.delivered}');
           print('📋 Listener start time: $_listenerStartTime');
+          print('📋 From cache: ${snapshot.metadata.isFromCache}');
           
           // Only process undelivered messages that are recent
           if (!ping.delivered) {
-            // Accept messages from the last 1 minute to catch real-time messages
-            final cutoffTime = _listenerStartTime!.subtract(const Duration(minutes: 1));
+            // Accept messages from the last 5 minutes to catch background messages
+            final cutoffTime = _listenerStartTime!.subtract(const Duration(minutes: 5));
             final isRecent = ping.timestamp.isAfter(cutoffTime);
             
             print('📋 Is recent (after $cutoffTime): $isRecent');
             
             if (isRecent) {
-              // Process the message without updating delivered status
+              // Process the message
               newMessages.add(ping);
               print('📨 ✅ NEW ping received and processed: ${ping.type} from ${ping.from}');
               

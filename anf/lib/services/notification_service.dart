@@ -1,5 +1,6 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import '../models/ping_message.dart';
 import '../models/ping_type.dart';
 
@@ -9,6 +10,9 @@ class NotificationService {
   NotificationService._internal();
 
   final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
+  
+  // Getter for external access (needed by FCM service)
+  FlutterLocalNotificationsPlugin get notifications => _notifications;
   bool _isInitialized = false;
 
   // Initialize notification service
@@ -118,9 +122,21 @@ class NotificationService {
       'love_pings',
       'Love Pings',
       description: 'Notifications for love messages between partners',
-      importance: Importance.high,
+      importance: Importance.max,
       enableVibration: true,
       playSound: true,
+      showBadge: true,
+    );
+
+    // High priority channel for urgent notifications
+    const urgentChannel = AndroidNotificationChannel(
+      'love_pings_urgent',
+      'Urgent Love Pings',
+      description: 'High priority notifications that bypass Do Not Disturb',
+      importance: Importance.max,
+      enableVibration: true,
+      playSound: true,
+      showBadge: true,
     );
 
     final androidPlugin = _notifications.resolvePlatformSpecificImplementation<
@@ -128,7 +144,8 @@ class NotificationService {
     
     if (androidPlugin != null) {
       await androidPlugin.createNotificationChannel(channel);
-      print('✅ Notification channel created');
+      await androidPlugin.createNotificationChannel(urgentChannel);
+      print('✅ Notification channels created');
     }
   }
 
@@ -148,13 +165,13 @@ class NotificationService {
       print('📋 Notification ID: $notificationId');
       print('📋 Ping type: ${pingType.label}');
 
-      // Android notification details
+      // Android notification details with enhanced background support
       final androidDetails = AndroidNotificationDetails(
-        'love_pings',
-        'Love Pings',
-        channelDescription: 'Notifications for love messages',
-        importance: Importance.high,
-        priority: Priority.high,
+        'love_pings_urgent',
+        'Urgent Love Pings',
+        channelDescription: 'High priority notifications for love messages',
+        importance: Importance.max,
+        priority: Priority.max,
         enableVibration: true,
         vibrationPattern: Int64List.fromList(pingType.vibrationPattern.pattern),
         icon: '@mipmap/ic_launcher',
@@ -164,6 +181,20 @@ class NotificationService {
           contentTitle: '💕 ${ping.from.toUpperCase()} sent you a ping!',
           summaryText: pingType.label,
         ),
+        // Enhanced background notification settings
+        fullScreenIntent: true,
+        category: AndroidNotificationCategory.message,
+        visibility: NotificationVisibility.public,
+        showWhen: true,
+        when: DateTime.now().millisecondsSinceEpoch,
+        usesChronometer: false,
+        autoCancel: true,
+        ongoing: false,
+        silent: false,
+        enableLights: true,
+        ledColor: Colors.red,
+        ledOnMs: 1000,
+        ledOffMs: 500,
       );
 
       // iOS notification details

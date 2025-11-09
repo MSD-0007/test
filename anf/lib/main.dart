@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'theme/app_theme.dart';
 import 'services/firebase_service.dart';
 import 'services/notification_service.dart';
+import 'services/fcm_service.dart';
 import 'services/haptic_service.dart';
 import 'providers/app_state_provider.dart';
 import 'providers/moments_provider.dart';
@@ -43,6 +44,10 @@ Future<void> _initializeServices() async {
     // Initialize Notifications
     await NotificationService().initialize();
     await NotificationService().requestPermissions();
+    
+    // Initialize FCM for background notifications
+    final fcmService = FCMService();
+    await fcmService.initialize();
     
     // Initialize Haptics
     await HapticService().initialize();
